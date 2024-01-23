@@ -1,5 +1,13 @@
-﻿namespace DocLicenseLookupApi
+﻿using System.Collections.Concurrent;
+
+namespace DocLicenseLookupApi
 {
+
+    public class ResponseWrapper
+    {
+        public int ExecutionTime { get; set;}
+        public ConcurrentBag<LicenseInfo> LicenseInfo { get; set; } = new();
+    }
     public class LicenseInfo
     {
         public string State { get; set; }

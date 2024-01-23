@@ -1,5 +1,5 @@
-﻿using Microsoft.AspNetCore.Cors;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
+using System.Diagnostics;
 
 namespace DocLicenseLookupApi.Controllers
 {
@@ -15,13 +15,23 @@ namespace DocLicenseLookupApi.Controllers
         }
 
         [HttpGet(Name = "GetLicenses")]
-        public async Task<IEnumerable<LicenseInfo>> Get(string lastName, string firstName = "", bool isDOSearch = false)
+        public async Task<ResponseWrapper> Get(string lastName, string firstName = "", bool isDOSearch = false)
         {
-            var data = new DocLicenseLookupData();
+            var sw = Stopwatch.StartNew();
 
-            var results = await data.GetLicenseInfoForAllStates(lastName, firstName, isDOSearch);
+            var data = new DocLicenseLookupData(lastName, firstName, isDOSearch);
 
-            return results;
+            var response = new ResponseWrapper
+            {
+                LicenseInfo = await data.GetLicenseInfoForAllStates()
+            };
+
+            sw.Stop();
+
+            response.ExecutionTime = (int)sw.Elapsed.TotalSeconds;
+
+     
+            return response;
         }
     }
 }
