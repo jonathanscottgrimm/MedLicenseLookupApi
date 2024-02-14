@@ -1,8 +1,11 @@
-﻿using Microsoft.Extensions.Options;
-using Polly.Retry;
+﻿using Polly.Retry;
 using Polly;
 using PuppeteerSharp;
 using System.Collections.Concurrent;
+using AntiCaptchaAPI;
+using System.Diagnostics;
+using TwoCaptcha.Captcha;
+using System.Reflection.Metadata;
 
 namespace DocLicenseLookupApi
 {
@@ -22,25 +25,30 @@ namespace DocLicenseLookupApi
 
             _retryPolicy = Policy
            .Handle<Exception>() // Specify the type of exceptions to handle
-           .WaitAndRetryAsync(
-               3, // Number of retries
-               retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)));
-
+          .WaitAndRetryAsync(
+       3, // Number of retries
+        (retryAttempt) =>
+        {
+            Debug.WriteLine($"Retrying attempt {retryAttempt}.");
+            return TimeSpan.FromSeconds(0); // Exponential back-off
+        },
+        onRetry: (exception, timespan) =>
+        {
+            Debug.WriteLine($"Retry scheduled after {timespan.TotalSeconds} seconds due to: {exception.Message}");
+        });
         }
 
-        public async Task<ConcurrentBag<LicenseInfo>> GetLicenseInfoForAllStates()
+
+        private async Task<IEnumerable<LicenseInfo>> GetLicenseInfoForSelectedStates(List<SearchInfo> statesList)
         {
-            var statesList = GetSearchInfoForAllStates();
-            var resultsList = new ConcurrentBag<LicenseInfo>();
+            var resultsList = new List<LicenseInfo>();
 
             using (var browserService = new BrowserService())
             {
                 await browserService.InitializeAsync();
 
-                // Concurrency control
-                var maxConcurrentTasks = 20; // Adjust this number based on performance testing
+                var maxConcurrentTasks = 20;
                 var semaphore = new SemaphoreSlim(maxConcurrentTasks);
-
 
                 var tasks = statesList.Select(async state =>
                 {
@@ -48,7 +56,7 @@ namespace DocLicenseLookupApi
                     try
                     {
                         var licenseInfo = await GetLicenseInfoFromBasicSite(browserService, state);
-                        resultsList.Add(licenseInfo);
+                        resultsList.AddRange(licenseInfo);
                     }
                     catch (Exception ex)
                     {
@@ -66,60 +74,228 @@ namespace DocLicenseLookupApi
             return resultsList;
         }
 
-   
 
-        public List<SearchInfo> GetSearchInfoForAllStates()
+        public async Task<IEnumerable<LicenseInfo>> GetGroupOne()
+        {
+            var statesList = GetGroupOneSearchInfo();
+
+            return await GetLicenseInfoForSelectedStates(statesList);
+        }
+
+        public async Task<IEnumerable<LicenseInfo>> GetGroupTwo()
+        {
+            var statesList = GetGroupTwoSearchInfo();
+
+            return await GetLicenseInfoForSelectedStates(statesList);
+        }
+
+        public async Task<IEnumerable<LicenseInfo>> GetGroupThree()
+        {
+            var statesList = GetGroupThreeSearchInfo();
+
+            return await GetLicenseInfoForSelectedStates(statesList);
+        }
+
+        public async Task<IEnumerable<LicenseInfo>> GetGroupFour()
+        {
+            var statesList = GetGroupFourSearchInfo();
+
+            return await GetLicenseInfoForSelectedStates(statesList);
+        }
+
+        public async Task<IEnumerable<LicenseInfo>> GetGroupFive()
+        {
+            var statesList = GetGroupFiveSearchInfo();
+
+            return await GetLicenseInfoForSelectedStates(statesList);
+        }
+
+        public async Task<IEnumerable<LicenseInfo>> GetGroupSix()
+        {
+            var statesList = GetGroupSixSearchInfo();
+
+            return await GetLicenseInfoForSelectedStates(statesList);
+        }
+
+        public async Task<IEnumerable<LicenseInfo>> GetGroupSeven()
+        {
+            var statesList = GetGroupSevenSearchInfo();
+
+            return await GetLicenseInfoForSelectedStates(statesList);
+        }
+
+        public async Task<IEnumerable<LicenseInfo>> GetGroupEight()
+        {
+            var statesList = GetGroupEightSearchInfo();
+
+            return await GetLicenseInfoForSelectedStates(statesList);
+        }
+
+        public async Task<IEnumerable<LicenseInfo>> GetGroupNine()
+        {
+            var statesList = GetGroupNineSearchInfo();
+
+            return await GetLicenseInfoForSelectedStates(statesList);
+        }
+
+        public async Task<IEnumerable<LicenseInfo>> GetGroupTen()
+        {
+            var statesList = GetGroupTenSearchInfo();
+
+            return await GetLicenseInfoForSelectedStates(statesList);
+        }
+
+        private List<SearchInfo> GetGroupOneSearchInfo()
+        {
+            return new List<SearchInfo>
+           {
+                GetAlabamaLicenseInfo(),
+                GetAlaskaLicenseInfo(),
+                GetArizonaLicenseInfo(),
+                GetArkansasLicenseInfo(),
+                GetCaliforniaLicenseInfo()
+            };
+        }
+
+        private List<SearchInfo> GetGroupTwoSearchInfo()
         {
             return new List<SearchInfo>
             {
-                GetArizonaLicenseInfo(),
-                GetArkansasLicenseInfo(),
-                GetCaliforniaLicenseInfo(),
+                GetColoradoLicenseInfo(),
+                GetConnecticutLicenseInfo(),
                 GetDelawareLicenseInfo(),
-              GetDistrictOfColumbiaLicenseInfo(),
-                GetFloridaLicenseInfo(),
-                GetIdahoLicenseInfo(),
+                GetDistrictOfColumbiaLicenseInfo(),
+                GetFloridaLicenseInfo()
+            };
+        }
+
+        private List<SearchInfo> GetGroupThreeSearchInfo()
+        {
+            return new List<SearchInfo>
+            {
+                GetGeorgiaLicenseInfo(),
+                GetHawaiiLicenseInfo(),
+
+                GetIllinoisLicenseInfo(),
                 GetIndianaLicenseInfo(),
-                GetIowaLicenseInfo  (),
-                GetKansasLicenseInfo(),
-                GetKentuckyLicenseInfo(),
-                GetLouisianaSiteLicenseInfo(),
-               // GetMaineSiteLicenseInfo(),
-                //GetMarylandLicenseInfo(),
-                GetMassachussettsSiteLicenseInfo(),
-                GetMichiganSiteLicenseInfo(),
-                GetMinnesotaSiteLicenseInfo(),
+            };
+        }
+        //todo: fix group 4
+        private List<SearchInfo> GetGroupFourSearchInfo()
+        {
+            return new List<SearchInfo>
+           {
+              GetIowaLicenseInfo(),
+              GetKansasLicenseInfo(),
+              GetKentuckyLicenseInfo(),
+              GetLouisianaSiteLicenseInfo(),
+               GetMaineSiteLicenseInfo(),
+            };
+        }
+
+        //tdo: michigan and minnesota failing on multi search
+        private List<SearchInfo> GetGroupFiveSearchInfo()
+        {
+            return new List<SearchInfo>
+           {
+              GetMarylandLicenseInfo(),
+           GetMassachussettsSiteLicenseInfo(),
+              GetMichiganSiteLicenseInfo(),
+          GetMinnesotaSiteLicenseInfo(),
+          GetMississippiLicenseInfo(),
+            };
+        }
+
+        //todo: fix group six on multi result search. nevADA failing
+        private List<SearchInfo> GetGroupSixSearchInfo()
+        {
+            return new List<SearchInfo>
+           {
                 GetMissouriLicenseInfo(),
-                GetNevadaLicenseInfo(),
-                GetNewHampshireLicenseInfo(),
+
+         GetNebraskaLicenseInfo(),
+             GetNevadaLicenseInfo(),
+              GetNewHampshireLicenseInfo(),
+            };
+        }
+
+        private List<SearchInfo> GetGroupSevenSearchInfo()
+        {
+            return new List<SearchInfo>
+           {
                 GetNewJerseyLicenseInfo(),
                 GetNewMexicoLicenseInfo(),
-                GetNorthCarolinaLicenseInfo(),
-                GetOhioLicenseInfo(),
-                //GetPennsylvaniaLicenseInfo(),
-                GetRhodeIslandLicenseInfo       (),
-                GetTexasLicenseInfo(),
-            //    GetVermontLicenseInfo(),
-                GetVirginiaLicenseInfo  (),
-                GetWestVirginiaLicenseInfo(),
-                GetWyomingLicenseInfo(),
+          GetNewYorkLicenseInfo(),
+           GetNorthCarolinaLicenseInfo(),
+        
+            };
+        }
+
+        private List<SearchInfo> GetGroupEightSearchInfo()
+        {
+            return new List<SearchInfo>
+           {
+                    GetOhioLicenseInfo(),
+        GetPennsylvaniaLicenseInfo(),
+              GetRhodeIslandLicenseInfo(),
+         GetSouthCarolinaLicenseInfo(),
+          GetTennesseeLicenseInfo()
+            };
+        }
+
+        private List<SearchInfo> GetGroupNineSearchInfo()
+        {
+            return new List<SearchInfo>
+           {
+                  GetTexasLicenseInfo(),
+             GetUtahLicenseInfo(),
+               GetVermontLicenseInfo(),
+                 GetNorthDakotaLicenseInfo(),
+
+             GetWestVirginiaLicenseInfo(),
+            };
+        }
+
+        private List<SearchInfo> GetGroupTenSearchInfo()
+        {
+            return new List<SearchInfo>
+           {
+                  GetMontanaLicenseInfo(),
+
+              GetWyomingLicenseInfo(),
+              GetWisconsinLicenseInfo(),
+              
+                GetVirginiaLicenseInfo(),
+                   GetIdahoLicenseInfo(),
+
             };
         }
 
 
-        public async Task<LicenseInfo> GetLicenseInfoFromBasicSite(BrowserService browserService, SearchInfo searchInfo)
+
+        public async Task<List<LicenseInfo>> GetLicenseInfoFromBasicSite(BrowserService browserService, SearchInfo searchInfo)
         {
             return await _retryPolicy.ExecuteAsync(async () =>
             {
-            var context = await browserService.Browser.CreateIncognitoBrowserContextAsync();
-            try
-            {
-                var page = await context.NewPageAsync();
+                var context = await browserService.Browser.CreateIncognitoBrowserContextAsync();
+                var licenses = new List<LicenseInfo>();
+                try
+                {
+                    var page = await context.NewPageAsync();
 
-                // await page.SetJavaScriptEnabledAsync(false);
+                    // await page.SetJavaScriptEnabledAsync(false);
 
-            
+                    if (!searchInfo.HasImageRecaptcha &&
+                    searchInfo.StateName.ToLowerInvariant() != "new york"
+                    && searchInfo.StateName.ToLowerInvariant() != "vermont"
+                    && searchInfo.StateName.ToLowerInvariant() != "washington, d.c."
+                    && searchInfo.StateName.ToLowerInvariant() != "maine"
+                     && searchInfo.StateName.ToLowerInvariant() != "connecticut"
+                     && searchInfo.StateName.ToLowerInvariant() != "alaska"
+                     && searchInfo.StateName.ToLowerInvariant() != "pennsylvania")
+                    {
                         await page.SetRequestInterceptionAsync(true);
+
                         page.Request += async (sender, e) =>
                         {
                             if (e.Request.ResourceType == ResourceType.StyleSheet ||
@@ -133,125 +309,290 @@ namespace DocLicenseLookupApi
                                 await e.Request.ContinueAsync();
                             }
                         };
-                    
-             
-
-                await page.GoToAsync(searchInfo.Url);
-
-                if (!string.IsNullOrEmpty(searchInfo.InitComboBoxSelector))
-                {
-                    await page.WaitForSelectorAsync(searchInfo.InitComboBoxSelector);
-                    await page.FocusAsync(searchInfo.InitComboBoxSelector);
-                    await page.Keyboard.TypeAsync(searchInfo.InitComboBoxValue);
-                    await page.Keyboard.DownAsync("Enter");
-                }
-
-                if (!string.IsNullOrEmpty(searchInfo.InitComboBox2Selector))
-                {
-                    await page.FocusAsync(searchInfo.InitComboBox2Selector);
-                    await page.Keyboard.TypeAsync(searchInfo.InitComboBox2Value);
-                    await page.Keyboard.DownAsync("Enter");
-                }
+                    }
+                    //    await page.SetViewportAsync(new ViewPortOptions { Width = 1280, Height = 800 });
+                    await page.GoToAsync(searchInfo.Url);
 
 
 
-                if (!string.IsNullOrEmpty(searchInfo.AcceptUsageTermsBtnSelector))
-                {
-                    await page.WaitForSelectorAsync(searchInfo.AcceptUsageTermsBtnSelector);
-                    await page.ClickAsync(searchInfo.AcceptUsageTermsBtnSelector);
-                }
+                    if (searchInfo.StateName.ToLower() == "connecticut")
+                        await page.ReloadAsync();
 
-                if (!string.IsNullOrEmpty(searchInfo.SearchTypeInitDropdownSelector))
-                    await page.SelectAsync(searchInfo.SearchTypeInitDropdownSelector, searchInfo.SearchTypeInitDropdownValue);
-
-                if (searchInfo.IsSearchButtonHidden)
-                {
-                    await page.WaitForSelectorAsync(searchInfo.LastNameSelector);
-                }
-                else
-                {
-                    await page.WaitForSelectorAsync(searchInfo.SearchButtonSelector);
-                }
-
-                await page.FocusAsync(searchInfo.LastNameSelector);
-                await page.Keyboard.TypeAsync(searchInfo.LastName);
-
-                if (!string.IsNullOrEmpty(searchInfo.FirstNameSelector))
-                {
-                    await page.FocusAsync(searchInfo.FirstNameSelector);
-                    await page.Keyboard.TypeAsync(searchInfo.FirstName);
-                }
-
-                if (!string.IsNullOrEmpty(searchInfo.DropdownSelector))
-                    await page.SelectAsync(searchInfo.DropdownSelector, searchInfo.DropdownSelectValue);
-
-                if (!string.IsNullOrEmpty(searchInfo.RadioSelector))
-                    await page.ClickAsync(searchInfo.RadioSelector);
-
-
-                await page.ClickAsync(searchInfo.SearchButtonSelector);
-
-                if (!string.IsNullOrEmpty(searchInfo.SecondSelectDropdown))
-                {
-                    await page.ClickAsync(searchInfo.SecondSelectDropdown);
-                }
-
-
-                if (!string.IsNullOrEmpty(searchInfo.SecondSearchButtonSelector))
-                {
-                    await page.WaitForSelectorAsync(searchInfo.SecondSearchButtonSelector);
-                    await page.ClickAsync(searchInfo.SecondSearchButtonSelector);
-                }
-
-                if (searchInfo.OpensInNewTab)
-                {
-                    var pages = await browserService.Browser.PagesAsync();
-                    page = pages.LastOrDefault();
-                }
-
-
-                if (!string.IsNullOrEmpty(searchInfo.UniqueResultsSelector))
-                {
-                    await page.WaitForSelectorAsync(searchInfo.UniqueResultsSelector);
-                }
-                else
-                {
-                    await page.WaitForSelectorAsync(searchInfo.LicenseNumberSelector);
-                }
-
-                string licenseNumber, licenseStatus = string.Empty, licenseExpiration = string.Empty;
-                var elLicenseNumber = await page.QuerySelectorAsync(searchInfo.LicenseNumberSelector);
-                    licenseNumber = (await (await elLicenseNumber.GetPropertyAsync("textContent")).JsonValueAsync()).ToString() ?? "";
-
-                    if (!string.IsNullOrEmpty(searchInfo.LicenseStatusSelector))
+                    if (searchInfo.StateName.ToLower() == "new york")
                     {
-                        var elLicenseStatus = await page.QuerySelectorAsync(searchInfo.LicenseStatusSelector);
-                        licenseStatus = (await (await elLicenseStatus.GetPropertyAsync("textContent")).JsonValueAsync()).ToString()?.Replace(" ", "").Trim() ?? "Not Available";
+                        try
+                        {
+                            await page.EvaluateExpressionAsync("document.querySelector('body > div:nth-child(17) > div:nth-child(1)').click()");
+                        }
+                        catch { }
+
+                        try
+                        {
+                            await page.EvaluateExpressionAsync("document.querySelector('body > div:nth-child(18) > div:nth-child(1)').click()");
+                        }
+                        catch { }
+
+                        try
+                        {
+                            await page.EvaluateExpressionAsync("document.querySelector('body > div:nth-child(19) > div:nth-child(1)').click()");
+                            ;
+                        }
+                        catch { }
+                    }
+                    //      await page.EvaluateExpressionAsync("document.querySelector('body > div:nth-child(19)').click()");
+
+                    if (searchInfo.HasInitModal)
+                    {
+                        await Task.Delay(1000);
+                        await page.WaitForSelectorAsync(searchInfo.AcceptTermsAndConditionsCheckboxSelector);
+                        await page.ClickAsync(searchInfo.AcceptTermsAndConditionsCheckboxSelector);
+
+                        await page.Keyboard.PressAsync("Enter");
+                        await Task.Delay(1000);
+                        //await page.ClickAsync(searchInfo.AcceptUsageTermsBtnSelector);
                     }
 
-                    if (!string.IsNullOrEmpty(searchInfo.LicenseExpirationSelector))
+                    if (searchInfo.HasInitRecaptcha2)
                     {
-                        var elLicenseExpiration = await page.QuerySelectorAsync(searchInfo.LicenseExpirationSelector);
-                        licenseExpiration = (await (await elLicenseExpiration.GetPropertyAsync("textContent")).JsonValueAsync()).ToString()?.Replace(" ", "").Trim() ?? "Not Available";
+                        await SolveRecaptcha2(page, searchInfo.Url, searchInfo.SiteKey, searchInfo.StateName, searchInfo.RecaptchaCallback, searchInfo.IsRecaptchaAfterSearchBtnClick, searchInfo.CustomReptchaResponseId);
                     }
 
-                    return new LicenseInfo
+
+                    if (!string.IsNullOrEmpty(searchInfo.InitComboBoxSelector))
                     {
-                        State = searchInfo.StateName.ToUpperInvariant(),
-                        LicenseNumber = licenseNumber,
-                        LicenseStatus = licenseStatus,
-                        LicenseExpiration = licenseExpiration
-                    };
+                        await page.WaitForSelectorAsync(searchInfo.InitComboBoxSelector);
+                        await page.FocusAsync(searchInfo.InitComboBoxSelector);
+                        await page.Keyboard.TypeAsync(searchInfo.InitComboBoxValue);
+                        await page.Keyboard.DownAsync("Enter");
+                        await Task.Delay(1000);
+                    }
+
+                    if (!string.IsNullOrEmpty(searchInfo.InitComboBox2Selector))
+                    {
+                        await page.FocusAsync(searchInfo.InitComboBox2Selector);
+                        await page.Keyboard.TypeAsync(searchInfo.InitComboBox2Value);
+                        await page.Keyboard.DownAsync("Enter");
+                        await Task.Delay(1000);
+                    }
+
+                    if (!string.IsNullOrEmpty(searchInfo.AcceptUsageTermsBtnSelector))
+                    {
+                        await page.WaitForSelectorAsync(searchInfo.AcceptUsageTermsBtnSelector);
+                        await page.ClickAsync(searchInfo.AcceptUsageTermsBtnSelector);
+                    }
+
+                    if (!string.IsNullOrEmpty(searchInfo.SearchTypeInitDropdownSelector))
+                        await page.SelectAsync(searchInfo.SearchTypeInitDropdownSelector, searchInfo.SearchTypeInitDropdownValue);
+
+                    if (searchInfo.IsSearchButtonHidden)
+                    {
+                        await Task.Delay(1000);
+                        await page.WaitForSelectorAsync(searchInfo.LastNameSelector);
+                    }
+                    else
+                    {
+                        await page.WaitForSelectorAsync(searchInfo.SearchButtonSelector);
+                    }
+
+                    await page.FocusAsync(searchInfo.LastNameSelector);
+                    await page.Keyboard.TypeAsync(searchInfo.LastName);
+
+                    if (!string.IsNullOrEmpty(searchInfo.FirstNameSelector))
+                    {
+                        await page.FocusAsync(searchInfo.FirstNameSelector);
+                        await page.Keyboard.TypeAsync(searchInfo.FirstName);
+                    }
+
+                    if (!string.IsNullOrEmpty(searchInfo.DropdownSelector))
+                        await page.SelectAsync(searchInfo.DropdownSelector, searchInfo.DropdownSelectValue);
+
+                    if (!string.IsNullOrEmpty(searchInfo.RadioSelector))
+                        await page.ClickAsync(searchInfo.RadioSelector);
+
+                    if (searchInfo.HasImageRecaptcha)
+                        await SolveImageRecaptcha(page, searchInfo.CaptchaAnswerSelector, searchInfo.StateName);
+
+                    if (searchInfo.HasRecaptcha2)
+                        await SolveRecaptcha2(page, searchInfo.Url, searchInfo.SiteKey, searchInfo.StateName, searchInfo.RecaptchaCallback, searchInfo.IsRecaptchaAfterSearchBtnClick, searchInfo.CustomReptchaResponseId);
+
+                    if (searchInfo.HasRecaptcha3)
+                        await SolveRecaptcha3(page, searchInfo.Url, searchInfo.SiteKey, searchInfo.StateName, searchInfo.RecaptchaCallback, searchInfo.ActionName);
+
+
+
+                    if (searchInfo.StateName.ToLowerInvariant() != "maine" && searchInfo.StateName.ToLowerInvariant() != "vermont")
+                    {
+                        if (searchInfo.StateName.ToLower() == "pennsylvania")
+                            await Task.Delay(1000);
+
+                        await page.ClickAsync(searchInfo.SearchButtonSelector);
+
+                        if (searchInfo.StateName.ToLower() == "montana")
+                            await Task.Delay(15000);
+                    }
+                    else
+                    {
+                        await Task.Delay(5000);
+                        await page.EvaluateExpressionAsync($"document.querySelector('{searchInfo.SearchButtonSelector}').click();");
+                        await Task.Delay(5000);
+                    }
+
+                    if (searchInfo.IsRecaptchaAfterSearchBtnClick)
+                    {
+                        try
+                        {
+                            await page.EvaluateExpressionAsync($@"{searchInfo.RecaptchaCallback};");
+                        }
+                        catch { }
+                    }
+
+                    if (searchInfo.HasPostSearchBtnRecaptcha2)
+                    {
+                        await SolveRecaptcha2(page, searchInfo.Url, searchInfo.SiteKey, searchInfo.StateName, searchInfo.RecaptchaCallback, searchInfo.IsRecaptchaAfterSearchBtnClick, searchInfo.CustomReptchaResponseId);
+
+                        await page.ClickAsync(searchInfo.PostSearchBtnRecaptcha2ContinueButton);
+                    }
+
+                    if (!string.IsNullOrEmpty(searchInfo.SecondSelectDropdown))
+                    {
+                        await page.WaitForSelectorAsync(searchInfo.SecondSelectDropdown);
+                        await page.ClickAsync(searchInfo.SecondSelectDropdown);
+                    }
+
+                    if (!string.IsNullOrEmpty(searchInfo.SecondSearchButtonSelector))
+                    {
+                        await page.WaitForSelectorAsync(searchInfo.SecondSearchButtonSelector);
+                        await page.ClickAsync(searchInfo.SecondSearchButtonSelector);
+                    }
+
+                    if (searchInfo.OpensInNewTab)
+                    {
+                        var pages = await browserService.Browser.PagesAsync();
+                        page = pages.LastOrDefault();
+                    }
+
+                    if (!string.IsNullOrEmpty(searchInfo.UniqueResultsSelector))
+                    {
+                        await page.WaitForSelectorAsync(searchInfo.UniqueResultsSelector);
+                    }
+                    else
+                    {
+                        await page.WaitForSelectorAsync(searchInfo.LicenseNumberSelector);
+                    }
+
+                    if (!searchInfo.IsTable)
+                    {
+                        string licenseNumber, licenseStatus = string.Empty, licenseExpiration = string.Empty, providerName = string.Empty;
+                        var elLicenseNumber = await page.QuerySelectorAsync(searchInfo.LicenseNumberSelector);
+                        licenseNumber = (await (await elLicenseNumber.GetPropertyAsync("textContent")).JsonValueAsync()).ToString()?.Replace(" ", "").Trim() ?? "Not Available";
+
+                        if (!string.IsNullOrEmpty(searchInfo.LicenseStatusSelector))
+                        {
+                            var elLicenseStatus = await page.QuerySelectorAsync(searchInfo.LicenseStatusSelector);
+                            licenseStatus = (await (await elLicenseStatus.GetPropertyAsync("textContent")).JsonValueAsync()).ToString()?.Replace(" ", "").Trim() ?? "Not Available";
+                        }
+
+                        if (!string.IsNullOrEmpty(searchInfo.LicenseExpirationSelector))
+                        {
+                            var elLicenseExpiration = await page.QuerySelectorAsync(searchInfo.LicenseExpirationSelector);
+                            licenseExpiration = (await (await elLicenseExpiration.GetPropertyAsync("textContent")).JsonValueAsync()).ToString()?.Replace(" ", "").Trim() ?? "Not Available";
+                        }
+
+                        if (!string.IsNullOrEmpty(searchInfo.ProviderNameSelector))
+                        {
+                            var elProviderName = await page.QuerySelectorAsync(searchInfo.ProviderNameSelector);
+                            providerName = (await (await elProviderName.GetPropertyAsync("textContent")).JsonValueAsync()).ToString()?.Replace(" ", "").Trim() ?? "Not Available";
+                        }
+
+
+
+                        licenses.Add(
+                            new LicenseInfo
+                            {
+                                State = searchInfo.StateName.ToUpperInvariant(),
+                                Name = providerName,
+                                LicenseNumber = licenseNumber,
+                                LicenseStatus = licenseStatus,
+                                LicenseExpiration = licenseExpiration
+                            });
+                    }
+                    else
+                    {
+                        // Initialize lists to hold the values for each column
+                        List<string> licenseNumbers = new List<string>(), licenseStatuses = new List<string>(), licenseExpirations = new List<string>(); List<string> providerNames = new List<string>();
+
+                        if (!string.IsNullOrEmpty(searchInfo.ProviderNameSelector))
+                        {
+                            var elNames = await page.QuerySelectorAllAsync(searchInfo.ProviderNameSelector);
+                            foreach (var el in elNames)
+                            {
+                                var name = (await (await el.GetPropertyAsync("textContent")).JsonValueAsync()).ToString()?.Replace(" ", "").Trim() ?? "Not Available";
+                                if (!name.Contains("1"))
+                                    providerNames.Add(name);
+                            }
+                        }
+
+                        // Select all elements for license numbers
+                        var elLicenseNumbers = await page.QuerySelectorAllAsync(searchInfo.LicenseNumberSelector);
+                        foreach (var el in elLicenseNumbers)
+                        {
+                            var licenseNumber = (await (await el.GetPropertyAsync("textContent")).JsonValueAsync()).ToString()?.Replace(" ", "").Trim() ?? "Not Available";
+
+                            licenseNumbers.Add(licenseNumber);
+                        }
+
+                        // Select all elements for license status if the selector is not empty
+                        if (!string.IsNullOrEmpty(searchInfo.LicenseStatusSelector))
+                        {
+                            var elLicenseStatuses = await page.QuerySelectorAllAsync(searchInfo.LicenseStatusSelector);
+                            foreach (var el in elLicenseStatuses)
+                            {
+                                var licenseStatus = (await (await el.GetPropertyAsync("textContent")).JsonValueAsync()).ToString()?.Replace(" ", "").Trim() ?? "Not Available";
+
+                                licenseStatuses.Add(licenseStatus);
+                            }
+                        }
+
+                        // Select all elements for license expiration if the selector is not empty
+                        if (!string.IsNullOrEmpty(searchInfo.LicenseExpirationSelector))
+                        {
+                            var elLicenseExpirations = await page.QuerySelectorAllAsync(searchInfo.LicenseExpirationSelector);
+                            foreach (var el in elLicenseExpirations)
+                            {
+                                var licenseExpiration = (await (await el.GetPropertyAsync("textContent")).JsonValueAsync()).ToString()?.Replace(" ", "").Trim() ?? "Not Available";
+
+                                licenseExpirations.Add(licenseExpiration);
+                            }
+                        }
+
+                        for (int i = 0; i < licenseNumbers.Count; i++)
+                        {
+                            if (!string.IsNullOrEmpty(licenseNumbers[i]))
+                            {
+                                licenses.Add(new LicenseInfo
+                                {
+                                    State = searchInfo.StateName.ToUpperInvariant(),
+                                    Name = providerNames[i],
+                                    LicenseNumber = licenseNumbers[i],
+                                    LicenseStatus = i < licenseStatuses.Count ? licenseStatuses[i] : "Not Available", // Check if there's a status for each number
+                                    LicenseExpiration = i < licenseExpirations.Count ? licenseExpirations[i] : "Not Available" // Check if there's an expiration date for each number
+                                });
+                            }
+                        }
+                    }
                 }
+
+
                 catch (Exception ex)
                 {
+                    throw;
 
-                    return new LicenseInfo
-                    {
-                        State = searchInfo.StateName.ToUpperInvariant(),
-                        ErrorMessage = ex.Message
+                    //return new LicenseInfo
+                    //{
+                    //    State = searchInfo.StateName.ToUpperInvariant(),
+                    //    ErrorMessage = ex.Message
 
-                    };
+                    //};
                 }
                 finally
                 {
@@ -261,7 +602,353 @@ namespace DocLicenseLookupApi
                     }
                 }
 
+                return licenses;
             });
+        }
+
+        private async Task SolveImageRecaptcha(IPage page, string captchaInputSelector, string stateName)
+        {
+            //var captcha = new AntiCaptcha("fe348e4a8a96a206a483b6ea98ee3751");
+
+            var twoCaptcha = new TwoCaptcha.TwoCaptcha("bb743d81179f6439cb71e645192ad2cd");
+
+
+            await page.FocusAsync(captchaInputSelector);
+
+            var screenshot = await page.ScreenshotBase64Async();
+
+            var normal = new Normal();
+            normal.SetBase64(screenshot);
+            normal.SetCaseSensitive(true);
+
+            await twoCaptcha.Solve(normal);
+
+            await page.FocusAsync(captchaInputSelector);
+            await page.Keyboard.TypeAsync(normal.Code);
+        }
+
+        public async Task SolveRecaptcha2(IPage page, string url, string siteKey, string stateName, string recaptchaCallback = "", bool isCallBackAfterSearchBtnClick = false, string customRecaptchaId = "")
+        {
+            var captcha = new AntiCaptcha("fe348e4a8a96a206a483b6ea98ee3751");
+            AntiCaptchaResult reCaptchaResult = await captcha.SolveReCaptchaV2(siteKey, url);
+
+            if (string.IsNullOrEmpty(customRecaptchaId))
+            {
+
+                if (!string.IsNullOrEmpty(recaptchaCallback) && !isCallBackAfterSearchBtnClick)
+                {
+                    await page.EvaluateExpressionAsync(@$"document.querySelector('#g-recaptcha-response').value = '{reCaptchaResult.Response}';");
+                    await page.EvaluateExpressionAsync(@$"document.querySelector('#g-recaptcha-response').innerHTML = '{reCaptchaResult.Response}';{recaptchaCallback};");
+                }
+                else
+                {
+                    await page.EvaluateExpressionAsync(@$"document.querySelector('#g-recaptcha-response').value = '{reCaptchaResult.Response}';");
+                    await page.EvaluateExpressionAsync(@$"document.querySelector('#g-recaptcha-response').innerHTML = '{reCaptchaResult.Response}';");
+                }
+            }
+            else
+            {
+                await page.EvaluateExpressionAsync(@$"document.querySelector('{customRecaptchaId}').value = '{reCaptchaResult.Response}';");
+                await page.EvaluateExpressionAsync(@$"document.querySelector('{customRecaptchaId}').innerHTML = '{reCaptchaResult.Response}';");
+            }
+        }
+
+        public async Task SolveRecaptcha3(IPage page, string url, string siteKey, string stateName, string recaptchaCallback = "", string actionName = "")
+        {
+            var captcha = new AntiCaptcha("fe348e4a8a96a206a483b6ea98ee3751");
+
+            var reCaptchaResult = await captcha.SolveReCaptchaV3(siteKey, url, 0.5, actionName);
+
+
+
+            if (stateName.ToLowerInvariant() != "utah")
+            {
+                var value = await page.EvaluateExpressionAsync(@$"document.querySelector('#g-recaptcha-response').value = '{reCaptchaResult.Response}';");
+
+                var innerHTML = await page.EvaluateExpressionAsync(@$"document.querySelector('#g-recaptcha-response').innerHTML = '{reCaptchaResult.Response}'; {recaptchaCallback}");
+            }
+            else
+            {
+                var value = await page.EvaluateExpressionAsync(@$"document.querySelector('#g-recaptcha-response-name').value = '{reCaptchaResult.Response}'; {recaptchaCallback};");
+            }
+        }
+
+        public SearchInfo GetAlabamaLicenseInfo()
+        {
+            var searchInfo = new SearchInfo
+            {
+                Url = "https://abme.igovsolution.net/online/Lookups/Individual_Lookup.aspx",
+                StateName = "Alabama",
+                FirstName = _firstName,
+                LastName = _lastName,
+                LicenseNumberSelector = "tr > td:nth-child(2)",
+                SearchButtonSelector = "#ctl00_cntbdy_btn_search",
+                LastNameSelector = "#ctl00_cntbdy_txt_lastname",
+                FirstNameSelector = "#ctl00_cntbdy_txt_firstname",
+                LicenseExpirationSelector = "tr > td:nth-child(6)",
+                LicenseStatusSelector = "tr > td:nth-child(4)",
+                ProviderNameSelector = "tr > td:nth-child(1)",
+                HasRecaptcha2 = true,
+                SiteKey = "6LchcFEUAAAAAJdfnpZDr9hVzyt81NYOspe29k",
+                RecaptchaCallback = @"correctCaptcha();",
+                IsTable = true,
+            };
+
+            return searchInfo;
+        }
+
+        public SearchInfo GetAlaskaLicenseInfo()
+        {
+            var searchInfo = new SearchInfo
+            {
+                Url = "https://www.commerce.alaska.gov/cbp/main/search/professional",
+                StateName = "Alaska",
+                FirstName = _firstName,
+                LastName = _lastName,
+                LicenseNumberSelector = "tr > td.deptGridViewActionCell > a",
+                SearchButtonSelector = "#search",
+                LastNameSelector = "#OwnerEntityName",
+                LicenseExpirationSelector = "tr > td:nth-child(6)",
+                LicenseStatusSelector = "tr > td:nth-child(5)",
+                ProviderNameSelector = "td:nth-child(4)",
+                SiteKey = @"6LdZ7-UUAAAAACLkIDeI7ahpbRvUahh4Onk9yF1J",
+                HasPostSearchBtnRecaptcha2 = true,
+                PostSearchBtnRecaptcha2ContinueButton = "div.deptModal > div.deptModalContainer > div > div > a",
+                IsTable = true
+
+
+            };
+
+            return searchInfo;
+        }
+
+        public SearchInfo GetNorthDakotaLicenseInfo()
+        {
+            var searchInfo = new SearchInfo
+            {
+                Url = "https://www.ndbom.org/public/find_verify/verify.asp",
+                StateName = "North Dakota",
+                FirstName = _firstName,
+                LastName = _lastName,
+                LicenseNumberSelector = "tr > td:nth-child(3)",
+                SearchButtonSelector = "#divSearch > fieldset.submit > button",
+                LastNameSelector = "#lastName",
+                FirstNameSelector = "#firstName",
+                LicenseStatusSelector = "tr > td:nth-child(4)",
+                ProviderNameSelector = "tr > td.name > a",
+                IsTable = true,
+                SiteKey = @"6LddpAsTAAAAAI4oir3oUkc4eAZo40OabK1Yu_rq",
+                RecaptchaCallback = @"showSearch();",
+                HasInitRecaptcha2 = true
+            };
+
+            return searchInfo;
+        }
+
+
+        public SearchInfo GetMontanaLicenseInfo()
+        {
+            var searchInfo = new SearchInfo
+            {
+                Url = "https://ebizws.mt.gov/PUBLICPORTAL/searchform?mylist=licenses",
+                StateName = "Montana",
+                FirstName = _firstName,
+                LastName = _lastName,
+                LicenseNumberSelector = "tr > td:nth-child(1) > a",
+                SearchButtonSelector = "#submitbtn",
+                LastNameSelector = "span:nth-child(3) > input[type=text]",
+                FirstNameSelector = "span:nth-child(2) > input[type=text]",
+                LicenseExpirationSelector = "tr > td:nth-child(4)",
+                LicenseStatusSelector = "tr > td:nth-child(3)",
+                ProviderNameSelector = "tr > td:nth-child(6)",
+                IsTable = true,
+                CaptchaAnswerSelector = "#verif",
+                HasImageRecaptcha = true
+            };
+
+            return searchInfo;
+        }
+
+        public SearchInfo GetIllinoisLicenseInfo()
+        {
+            var searchInfo = new SearchInfo
+            {
+                Url = "https://online-dfpr.micropact.com/lookup/licenselookup.aspx",
+                StateName = "Illinois",
+                FirstName = _firstName,
+                LastName = _lastName,
+                LicenseNumberSelector = "tr:nth-child(1) > td:nth-child(4)",
+                SearchButtonSelector = "#btnLookup",
+                LastNameSelector = "#ctl00_MainContentPlaceHolder_ucLicenseLookup_ctl03_tbLastName_Contact",
+                FirstNameSelector = "#ctl00_MainContentPlaceHolder_ucLicenseLookup_ctl03_tbFirstName_Contact",
+                LicenseExpirationSelector = "#ctl00_MainContentPlaceHolder_ucLicenseLookup_gvSearchResults > tbody > tr > td:nth-child(7)",
+                LicenseStatusSelector = "#ctl00_MainContentPlaceHolder_ucLicenseLookup_gvSearchResults > tbody > tr > td:nth-child(3)",
+                ProviderNameSelector = "#ctl00_MainContentPlaceHolder_ucLicenseLookup_gvSearchResults > tbody > tr > td:nth-child(2)",
+                IsTable = true,
+                CaptchaAnswerSelector = "#ctl00_MainContentPlaceHolder_ucLicenseLookup_CaptchaSecurity1_txtCAPTCHA",
+                HasImageRecaptcha = true,
+                RadioSelector = "#ctl00_MainContentPlaceHolder_ucLicenseLookup_ctl03_lbMultipleCredentialTypePrefix > option:nth-child(34)",
+            };
+
+            return searchInfo;
+        }
+
+        public SearchInfo GetWisconsinLicenseInfo()
+        {
+            var searchInfo = new SearchInfo
+            {
+                Url = "https://licensesearch.wi.gov/#panel1",
+                StateName = "Wisconsin",
+                FirstName = _firstName,
+                LastName = _lastName,
+                LicenseNumberSelector = "tr > td:nth-child(1)",
+                SearchButtonSelector = "#IndividualSearch",
+                LastNameSelector = "#lastName",
+                FirstNameSelector = "#firstName",
+                LicenseExpirationSelector = "tr > td:nth-child(6)",
+                // LicenseStatusSelector = "tr:nth-child(1) > td:nth-child(4)",
+                ProviderNameSelector = "tr > td:nth-child(3)",
+                IsTable = true,
+                HasRecaptcha2 = true,
+                SiteKey = "6LfXEbEUAAAAAHu-jvb4evjNCyg700VKwnnx6Vyi",
+            };
+
+            return searchInfo;
+        }
+
+        public SearchInfo GetSouthCarolinaLicenseInfo()
+        {
+            var searchInfo = new SearchInfo
+            {
+                Url = "https://verify.llronline.com/LicLookup/Med/Med.aspx",
+                StateName = "South Carolina",
+                FirstName = _firstName,
+                LastName = _lastName,
+                LicenseNumberSelector = "#ctl00_ContentPlaceHolder2_gv_results > tbody > tr > td:nth-child(1) > a",
+                ProviderNameSelector = "#ctl00_ContentPlaceHolder2_gv_results > tbody > tr > td:nth-child(5)",
+                IsTable = true,
+                SearchButtonSelector = "tr:nth-child(5) > td.tdrightside > button",
+                LastNameSelector = "#ctl00_ContentPlaceHolder1_UserInputGen1_txt_lastName",
+                FirstNameSelector = "#ctl00_ContentPlaceHolder1_UserInputGen1_txt_firstName",
+                HasRecaptcha2 = true,
+                SiteKey = @"6Lc2X-saAAAAAPC6HatgHFOd8rCxCl-2yPTh44PN",
+                RecaptchaCallback = @"onSubmit()",
+                IsRecaptchaAfterSearchBtnClick = true
+            };
+
+            return searchInfo;
+        }
+
+        public SearchInfo GetUtahLicenseInfo()
+        {
+            var searchInfo = new SearchInfo
+            {
+                Url = "https://secure.utah.gov/llv/search/index.html",
+                StateName = "Utah",
+                LastName = $"{_firstName} {_lastName}",
+                LicenseNumberSelector = "tr > td:nth-child(4)>a",
+                SearchButtonSelector = "input[type=submit]:nth-child(1)",
+                LastNameSelector = "#fullName",
+                LicenseStatusSelector = "tr > td:nth-child(5)",
+                ProviderNameSelector = "tr > td:nth-child(1) > a",
+                IsTable = true,
+                HasRecaptcha2 = true,
+                SiteKey = @"6LcQUqIUAAAAAG7lgG1BfDlhvVUuFP26QsY4Eq6_",
+                CustomReptchaResponseId = @"#g-recaptcha-response-name"
+            };
+
+            return searchInfo;
+        }
+
+        public SearchInfo GetGeorgiaLicenseInfo()
+        {
+            var searchInfo = new SearchInfo
+            {
+                Url = "https://gcmb.mylicense.com/verification/",
+                StateName = "Georgia",
+                FirstName = _firstName,
+                LastName = _lastName,
+                LicenseNumberSelector = "tr > td:nth-child(4) > span",
+                SearchButtonSelector = "#sch_button",
+                LastNameSelector = "#t_web_lookup__last_name",
+                FirstNameSelector = "#t_web_lookup__first_name",
+                LicenseStatusSelector = "tr>td:nth-child(3)>span",
+                ProviderNameSelector = "#datagrid_results > tbody > tr > td:nth-child(1) > table > tbody > tr:nth-child(1) > td",
+                IsTable = true,
+                HasRecaptcha2 = true,
+                SiteKey = @"6Ldp57EUAAAAABWjdLVKT-QThpxati6v0KV8azOS",
+            };
+
+            return searchInfo;
+        }
+
+        public SearchInfo GetHawaiiLicenseInfo()
+        {
+            var searchInfo = new SearchInfo
+            {
+                Url = "https://mypvl.dcca.hawaii.gov/public-license-search/",
+                StateName = "Hawaii",
+                FirstName = _firstName,
+                LastName = $"{_firstName} {_lastName}",
+                LicenseNumberSelector = "tr > td:nth-child(2) > a",
+                //SearchButtonSelector = "#business_individual-captcha-btn",
+                LastNameSelector = "#business_individual",
+                HasRecaptcha2 = true,
+                SiteKey = @"6LfE564ZAAAAAHmW1_6SbaG2P8-EqV_RhtHpMR80",
+                AcceptUsageTermsBtnSelector = "#nav-business-individual-tab",
+                CustomReptchaResponseId = "#g-recaptcha-response-1",
+                SearchButtonSelector = "#business_individual-captcha-btn",
+                ProviderNameSelector = "tr > td.sorting_1 > a",
+                IsTable = true,
+            };
+
+            return searchInfo;
+        }
+
+        public SearchInfo GetMississippiLicenseInfo()
+        {
+            var searchInfo = new SearchInfo
+            {
+                Url = "https://gateway.msbml.ms.gov/verification/search.aspx",
+                StateName = "Mississippi",
+                FirstName = _firstName,
+                LastName = _lastName,
+                LicenseNumberSelector = "tr>td:nth-child(2)",
+                SearchButtonSelector = "#btnSubmit",
+                LastNameSelector = "#txtLast",
+                FirstNameSelector = "#txtFirst",
+                LicenseStatusSelector = "tr > td:nth-child(4) > span",
+                HasRecaptcha2 = true,
+                SiteKey = @"6LcOFXcdAAAAAJ-_adyQGC-KARdFfJP461lcbuL0",
+                ProviderNameSelector = "tr > td:nth-child(1) > a",
+                IsTable = true,
+            };
+
+            return searchInfo;
+        }
+
+        public SearchInfo GetNebraskaLicenseInfo()
+        {
+            var searchInfo = new SearchInfo
+            {
+                Url = "https://www.nebraska.gov/LISSearch/search.cgi",
+                StateName = "Nebraska",
+                FirstName = _firstName,
+                LastName = _lastName,
+                LicenseNumberSelector = "tr > td:nth-child(3)",
+                SearchButtonSelector = "#submit",
+                LastNameSelector = "#last_name",
+                FirstNameSelector = "#first_name",
+                LicenseExpirationSelector = "tr > td:nth-child(4)",
+                LicenseStatusSelector = "tr > td:nth-child(2)",
+                HasRecaptcha2 = true,
+                SiteKey = @"6LcmsP4SAAAAAJeHxpx9VA7CeZq_9gf74M8tJVra",
+                AcceptUsageTermsBtnSelector = "#radio1",
+                ProviderNameSelector = "tr > th > a",
+                IsTable = true
+            };
+
+            return searchInfo;
         }
 
         public SearchInfo GetArizonaLicenseInfo()
@@ -280,6 +967,7 @@ namespace DocLicenseLookupApi
                 LastNameSelector = "#ContentPlaceHolder1_txtLastName",
                 FirstNameSelector = "#ContentPlaceHolder1_txtFirstName",
                 SecondSearchButtonSelector = "td:nth-child(1) > a",
+                ProviderNameSelector = "#ContentPlaceHolder1_dtgGeneral_lblLeftColumnEntName_0 > b",
                 OpensInNewTab = true,
                 RadioSelector = "#ContentPlaceHolder1_rbName1"
             };
@@ -294,10 +982,12 @@ namespace DocLicenseLookupApi
                 Url = "https://azdo.portalus.thentiacloud.net/webs/portal/register/#/",
                 StateName = "Arizona",
                 LastName = $"{_firstName} {_lastName}",
-                LicenseStatusSelector = "tr:last-child > td:nth-child(5)",
-                LicenseNumberSelector = "tr:last-child > td:nth-child(1)",
+                LicenseStatusSelector = "tr > td:nth-child(5)",
+                LicenseNumberSelector = "tr > td:nth-child(1)",
+                ProviderNameSelector = "tr > td:nth-child(3)",
                 SearchButtonSelector = "button",
                 LastNameSelector = "#keywords",
+                IsTable = true
             };
 
             return searchInfo;
@@ -307,12 +997,14 @@ namespace DocLicenseLookupApi
         {
             var searchInfo = new SearchInfo
             {
-                Url = "https://www.pals.pa.gov/#!/page/search",
+                Url = @"https://www.pals.pa.gov/#!/page/search",
                 StateName = "Pennsylvania",
                 LastName = _lastName,
                 FirstName = _firstName,
-                LicenseStatusSelector = "tr:last-child > td:nth-child(5)",
-                LicenseNumberSelector = "tr:last-child > td:nth-child(2)",
+                LicenseStatusSelector = "tr > td:nth-child(5)",
+                LicenseNumberSelector = "tr > td:nth-child(2)",
+                ProviderNameSelector = "tr > td:nth-child(1) > a",
+                IsTable = true,
                 SearchButtonSelector = "button:nth-child(3)",
                 LastNameSelector = "#lName",
                 FirstNameSelector = "#fName",
@@ -329,8 +1021,10 @@ namespace DocLicenseLookupApi
                 StateName = "Rhode Island",
                 LastName = _lastName,
                 FirstName = _firstName,
-                LicenseStatusSelector = "tr:nth-child(2) > td:nth-child(5) > span",
-                LicenseNumberSelector = "tr:nth-child(2) > td:nth-child(2) > span",
+                LicenseStatusSelector = "#datagrid_results > tbody > tr > td:nth-child(5) > span",
+                LicenseNumberSelector = "#datagrid_results > tbody > tr > td:nth-child(2) > span",
+                ProviderNameSelector = "#datagrid_results > tbody > tr > td:nth-child(1)",
+                IsTable = true,
                 SearchButtonSelector = "#sch_button",
                 LastNameSelector = "#t_web_lookup__last_name",
                 FirstNameSelector = "#t_web_lookup__first_name",
@@ -339,17 +1033,15 @@ namespace DocLicenseLookupApi
             return searchInfo;
         }
 
-
         public SearchInfo GetCaliforniaLicenseInfo()
         {
             var url = "https://search.dca.ca.gov/";
             var elLicenseNumberSelector = "#lic0";
             var elLicenseStatusSelector = "#\\30  > footer > ul:nth-child(2) > li:nth-child(5)";
             var elLicenseExpirationDateSelector = "#\\30  > footer > ul:nth-child(2) > li:nth-child(7)";
+
             var firstNameSelector = "#firstName";
             var lastNameSelector = "#lastName";
-
-
 
             return new SearchInfo
             {
@@ -362,179 +1054,61 @@ namespace DocLicenseLookupApi
                 SearchButtonSelector = "#srchSubmitHome",
                 LicenseExpirationSelector = elLicenseExpirationDateSelector,
                 LicenseNumberSelector = elLicenseNumberSelector,
-                LicenseStatusSelector = elLicenseStatusSelector
+                LicenseStatusSelector = elLicenseStatusSelector,
+                ProviderNameSelector = "#\\30  > footer > ul:nth-child(2) > li:nth-child(1) > h3"
             };
         }
 
-        //public  SearchInfo GetColoradoLicenseInfo(IBrowser browser, IPage page, , string searchLicenseNumber)
-        //{
-        //    var url = "https://apps2.colorado.gov/dora/licensing/lookup/licenselookup.aspx";
-        //    var elLicenseNumberSelector = "#Grid1 > tbody > tr > td:nth-child(1)";
-        //    var elLicenseStatusSelector = "#Grid1 > tbody > tr > td:nth-child(4) > font";
-        //    var elLicenseExpirationDateSelector = "#Grid1 > tbody > tr > td:nth-child(7)";
-        //    var firstNameSelector = "#ctl00_MainContentPlaceHolder_ucLicenseLookup_ctl03_tbFirstName_Contact";
-        //    var lastNameSelector = "#ctl00_MainContentPlaceHolder_ucLicenseLookup_ctl03_tbLastName_Contact";
+        public SearchInfo GetColoradoLicenseInfo()
+        {
+            var url = "https://apps2.colorado.gov/dora/licensing/lookup/licenselookup.aspx";
+            var elLicenseNumberSelector = "tr > td:nth-child(3)";
+            var elLicenseStatusSelector = "tr > td:nth-child(4)";
+            var firstNameSelector = "#ctl00_MainContentPlaceHolder_ucLicenseLookup_ctl03_tbFirstName_Contact";
+            var lastNameSelector = "#ctl00_MainContentPlaceHolder_ucLicenseLookup_ctl03_tbLastName_Contact";
 
 
-        //    await page.GoToAsync(url);
-        //    await page.WaitForSelectorAsync(firstNameSelector);
-        //    await page.FocusAsync(firstNameSelector);
-        //    await page.Keyboard.TypeAsync(firstName);
-        //    await page.FocusAsync(lastNameSelector);
-        //    await page.Keyboard.TypeAsync(lastName);
-        //    await page.ClickAsync("#ctl00_MainContentPlaceHolder_ucLicenseLookup_btnLookup");
+            return new SearchInfo
+            {
+                StateName = "Colorado",
+                Url = url,
+                FirstName = _firstName,
+                LastName = _lastName,
+                FirstNameSelector = firstNameSelector,
+                LastNameSelector = lastNameSelector,
+                SearchButtonSelector = "#ctl00_MainContentPlaceHolder_ucLicenseLookup_btnLookup",
+                LicenseNumberSelector = elLicenseNumberSelector,
+                LicenseStatusSelector = elLicenseStatusSelector,
+                ProviderNameSelector = "#ctl00_MainContentPlaceHolder_ucLicenseLookup_gvSearchResults > tbody > tr > td:nth-child(2)",
+                IsTable = true
+            };
 
-        //    var pages = await browser.PagesAsync();
-        //    var popup = pages[pages.Length - 2];
+        }
 
+        public SearchInfo GetConnecticutLicenseInfo()
+        {
 
-        //    //todo:fox page problem
-        //    await popup.ClickAsync(".btn-primary");
-        //    pages = await browser.PagesAsync();
-        //    popup = pages[pages.Length - 1];
+            var url = "https://www.elicense.ct.gov/Lookup/LicenseLookup.aspx";
+            var elLicenseNumberSelector = "tr > td:nth-child(3)";
+            var elLicenseStatusSelector = "tr > td:nth-child(5)";
+            var firstNameSelector = "#ctl00_MainContentPlaceHolder_ucLicenseLookup_ctl03_tbFirstName_Contact";
+            var lastNameSelector = "#ctl00_MainContentPlaceHolder_ucLicenseLookup_ctl03_tbLastName_Contact";
 
-
-        //    var elLicenseNumber = await popup.WaitForSelectorAsync(elLicenseNumberSelector);
-        //    var licenseNumber = await (await elLicenseNumber.GetPropertyAsync("textContent")).JsonValueAsync();
-
-        //    var elLicenseStatus = await popup.QuerySelectorAsync(elLicenseStatusSelector);
-        //    var licenseStatus = await (await elLicenseStatus.GetPropertyAsync("textContent")).JsonValueAsync();
-
-        //    var elLicenseExpirationDate = await popup.QuerySelectorAsync(elLicenseExpirationDateSelector);
-        //    var licenseExpirationDate = await (await elLicenseExpirationDate.GetPropertyAsync("textContent")).JsonValueAsync();
-
-        //    return new LicenseInfo
-        //    {
-        //        State = "Arizona",
-        //        LicenseNumber = licenseNumber?.ToString() ?? string.Empty,
-        //        LicenseStatus = licenseStatus?.ToString() ?? string.Empty,
-        //        LicenseExpiration = licenseExpirationDate?.ToString() ?? string.Empty
-        //    };
-        //}
-
-        //public  SearchInfo GetConnecticutLicenseInfo(IBrowser browser, IPage page, , string searchLicenseNumber)
-        //{
-
-        //    //todo: exact same as colorado. fix page issue
-        //    var url = "https://www.elicense.ct.gov/Lookup/LicenseLookup.aspx";
-        //    var elLicenseNumberSelector = "#Grid1 > tbody > tr > td:nth-child(1)";
-        //    var elLicenseStatusSelector = "#Grid1 > tbody > tr > td:nth-child(4) > font";
-        //    var elLicenseExpirationDateSelector = "#Grid1 > tbody > tr > td:nth-child(7)";
-        //    var firstNameSelector = "#ctl00_MainContentPlaceHolder_ucLicenseLookup_ctl03_tbFirstName_Contact";
-        //    var lastNameSelector = "#ctl00_MainContentPlaceHolder_ucLicenseLookup_ctl03_tbLastName_Contact";
-
-
-        //    await page.GoToAsync(url);
-        //    await page.WaitForSelectorAsync(firstNameSelector);
-        //    await page.FocusAsync(firstNameSelector);
-        //    await page.Keyboard.TypeAsync(firstName);
-        //    await page.FocusAsync(lastNameSelector);
-        //    await page.Keyboard.TypeAsync(lastName);
-        //    await page.ClickAsync("#ctl00_MainContentPlaceHolder_ucLicenseLookup_btnLookup");
-
-        //    var pages = await browser.PagesAsync();
-        //    var popup = pages[pages.Length - 2];
-
-
-        //    //todo:fox page problem
-        //    await popup.ClickAsync(".btn-primary");
-        //    pages = await browser.PagesAsync();
-        //    popup = pages[pages.Length - 1];
-
-
-        //    var elLicenseNumber = await popup.WaitForSelectorAsync(elLicenseNumberSelector);
-        //    var licenseNumber = await (await elLicenseNumber.GetPropertyAsync("textContent")).JsonValueAsync();
-
-        //    var elLicenseStatus = await popup.QuerySelectorAsync(elLicenseStatusSelector);
-        //    var licenseStatus = await (await elLicenseStatus.GetPropertyAsync("textContent")).JsonValueAsync();
-
-        //    var elLicenseExpirationDate = await popup.QuerySelectorAsync(elLicenseExpirationDateSelector);
-        //    var licenseExpirationDate = await (await elLicenseExpirationDate.GetPropertyAsync("textContent")).JsonValueAsync();
-
-        //    return new LicenseInfo
-        //    {
-        //        State = "Arizona",
-        //        LicenseNumber = licenseNumber?.ToString() ?? string.Empty,
-        //        LicenseStatus = licenseStatus?.ToString() ?? string.Empty,
-        //        LicenseExpiration = licenseExpirationDate?.ToString() ?? string.Empty
-        //    };
-        //}
-
-
-        /// <summary>
-        /// Works for North Carolina, Florida, New Mexico, Oregon, North Dakota, Maryland, Georgia, and Kansas
-        /// </summary>
-        /// <param name="page"></param>
-        /// <param name="stateName"></param>
-        /// <param name="firstName"></param>
-        /// <param name=lastName></param>
-        /// <returns></returns>
-        //public  SearchInfo GetDocFinderLicenseInfo(string stateName, )
-        //{
-
-        //    try
-        //    {
-        //        stateName = stateName.ToUpperInvariant();
-
-        //        var url = "http://docfinder.docboard.org/docfinder.html";
-        //        var optionSelector = $@"select";
-        //        var elLicenseNumberSelector = @"body > b > b > b > center > b > center > table > tbody > tr:nth-child(3) > td:nth-child(2)";
-        //        var elLicenseStatusSelector = "tr:nth-child(6) > td:nth-child(2)";
-        //        var srchBtnSelector = @"body > center > table:nth-child(3) > tbody > tr > td:nth-child(1) > table > tbody > tr:nth-child(3) > td > font > form > input[type=submit]:nth-child(6)";
-        //        var firstNameSelector = @"[name='medfname']";
-        //        var lastNameSelector = @"[name='medlname']";
-        //        var secondSrchBtnSelector = @"body > b > b > b > center > form > input[type=submit]:nth-child(7)";
-
-
-
-        //        var launchOptions = new LaunchOptions
-        //        {
-        //            Headless = true // = false for testing
-        //        };
-        //        await new BrowserFetcher().DownloadAsync();
-        //        using var browser = await Puppeteer.LaunchAsync(launchOptions);
-        //        using var page = await browser.NewPageAsync();
-        //        await page.GoToAsync(url);
-
-        //        await page.QuerySelectorAsync(firstNameSelector);
-        //        await page.FocusAsync(firstNameSelector);
-        //        await page.Keyboard.TypeAsync(firstName);
-        //        await page.FocusAsync(lastNameSelector);
-        //        await page.Keyboard.TypeAsync(lastName);
-        //        await page.ClickAsync(srchBtnSelector);
-
-        //        await page.WaitForSelectorAsync(optionSelector);
-        //        await page.ClickAsync($"option[value*='{stateName}']");
-        //        await page.ClickAsync(secondSrchBtnSelector);
-
-
-        //        var elLicenseNumber = await page.WaitForSelectorAsync(elLicenseNumberSelector);
-        //        var licenseNumber = await (await elLicenseNumber.GetPropertyAsync("textContent")).JsonValueAsync();
-        //        var elLicenseStatus = await page.QuerySelectorAsync(elLicenseStatusSelector);
-        //        var licenseStatus = await (await elLicenseStatus.GetPropertyAsync("textContent")).JsonValueAsync();
-
-        //        return new LicenseInfo
-        //        {
-        //            State = stateName,
-        //            LicenseNumber = licenseNumber?.ToString() ?? string.Empty,
-        //            LicenseStatus = licenseStatus?.ToString() ?? string.Empty,
-        //            LicenseExpiration = "Unavailable"
-        //        };
-
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        return new LicenseInfo
-        //        {
-        //            State = stateName,
-        //            ErrorMessage = ex.Message
-        //        };
-
-        //    }
-
-
-
-        //}
+            return new SearchInfo
+            {
+                StateName = "Connecticut",
+                Url = url,
+                FirstName = _firstName,
+                LastName = _lastName,
+                FirstNameSelector = firstNameSelector,
+                LastNameSelector = lastNameSelector,
+                LicenseStatusSelector = elLicenseStatusSelector,
+                LicenseNumberSelector = elLicenseNumberSelector,
+                SearchButtonSelector = "#ctl00_MainContentPlaceHolder_ucLicenseLookup_btnLookup",
+                ProviderNameSelector = "#ctl00_MainContentPlaceHolder_ucLicenseLookup_gvSearchResults > tbody > tr > td:nth-child(2)",
+                IsTable = true
+            };
+        }
 
         public SearchInfo GetArkansasLicenseInfo()
         {
@@ -546,6 +1120,7 @@ namespace DocLicenseLookupApi
             var srchBtnSelector = @"#ctl00_MainContentPlaceHolder_ucVerifyLicense_btnVerifyLicense";
             var lastNameSelector = @"#ctl00_MainContentPlaceHolder_ucVerifyLicense_txtVerifyLicNumLastName";
             var secondSrchBtnSelector = @"#ctl00_MainContentPlaceHolder_gvVerifyLicenseResultsLookup_ctl02_VerifySelectFindLicense";
+
 
             var searchInfo = new SearchInfo
             {
@@ -559,16 +1134,15 @@ namespace DocLicenseLookupApi
                 LastNameSelector = lastNameSelector,
                 RadioSelector = radioSelector,
                 SecondSearchButtonSelector = secondSrchBtnSelector,
+                ProviderNameSelector = "#ctl00_MainContentPlaceHolder_lvResults_ctrl0_lblPhyname"
             };
 
             return searchInfo;
 
         }
 
-
         public SearchInfo GetKentuckyLicenseInfo()
         {
-            var url = "https://web1.ky.gov/GenSearch/LicenseSearch.aspx?AGY=5";
             var elLicenseNumberSelector = @"#Form1 > div.ky-content > div > div.ky-cm-content > div:nth-child(7) > div.cols2-col2";
             var elLicenseStatusSelector = @"#Form1 > div.ky-content > div > div.ky-cm-content > div:nth-child(8) > div.cols2-col2";
             var expirationSelector = @"#Form1 > div.ky-content > div > div.ky-cm-content > div:nth-child(9) > div.cols2-col2";
@@ -585,6 +1159,7 @@ namespace DocLicenseLookupApi
                 LicenseStatusSelector = elLicenseStatusSelector,
                 SearchButtonSelector = srchBtnSelector,
                 StateName = "Kentucky",
+                ProviderNameSelector = "div:nth-child(3) > div.cols2-col2"
             };
 
             return searchInfo;
@@ -594,17 +1169,11 @@ namespace DocLicenseLookupApi
         public SearchInfo GetLouisianaSiteLicenseInfo()
         {
             var url = "https://online.lasbme.org/#/verifylicense";
-
-            var elLicenseNumberSelector = "tr:last-child > td:nth-child(2)";
-            var elLicenseStatusSelector = @"tr:last-child > td:nth-child(3)";
-            // var expirationSelector = @"tr:last-child > td:nth-child(6)";
-
-            var srchBtnSelector = @"input.btn.btn-success";
-            //var secondSrchSelector = @"body > div:nth-child(1) > div.middle-content.ng-scope > div > div > div > div.searchoption.mt30.ng-scope > div:nth-child(2) > table > tbody > tr > td:nth-child(8) > input";
-
-            var lastNameSelector = @"div:nth-child(7) > div > input";
-            var firstNameSelector = @"div:nth-child(6) > div > input";
-
+            var elLicenseNumberSelector = "tr > td:nth-child(2)";
+            var elLicenseStatusSelector = "tr > td:nth-child(3)";
+            var srchBtnSelector = "input.btn.btn-success";
+            var lastNameSelector = "form > div:nth-child(7) > div > input";
+            var firstNameSelector = "form > div:nth-child(6) > div > input";
 
             var searchInfo = new SearchInfo
             {
@@ -617,25 +1186,20 @@ namespace DocLicenseLookupApi
                 SearchButtonSelector = srchBtnSelector,
                 FirstNameSelector = firstNameSelector,
                 LastNameSelector = lastNameSelector,
+                ProviderNameSelector = "tr > td:nth-child(1)",
+                IsTable = true
             };
 
             return searchInfo;
-
         }
 
         public SearchInfo GetMaineSiteLicenseInfo()
         {
             var url = "https://www.pfr.maine.gov/ALMSOnline/ALMSQuery/SearchIndividual.aspx";
-
-            var elLicenseNumberSelector = "tr:last-child > td:nth-child(2)";
-            var elLicenseStatusSelector = "tr:last-child > td:nth-child(5)";
-            //  var expirationSelector = @"#detailPage > div > div:nth-child(3) > div.DetailGroup.Attributes > div:nth-child(4) > div:nth-child(2)";
-
+            var elLicenseNumberSelector = "tr > td:nth-child(2)";
+            var elLicenseStatusSelector = "tr > td:nth-child(5)";
             var ddlSelector = @"#scRegulator";
-
             var srchBtnSelector = @"#btnSearch";
-            // var secondSrchSelector = @"#gvLicensees > tbody > tr > td:nth-child(1) > a";
-
             var lastNameSelector = @"#scLastName";
             var firstNameSelector = @"#scFirstName";
 
@@ -652,27 +1216,28 @@ namespace DocLicenseLookupApi
                 LastNameSelector = lastNameSelector,
                 DropdownSelector = ddlSelector,
                 DropdownSelectValue = "",
+                IsTable = true,
+                ProviderNameSelector = "tr > td:nth-child(1) > a"
             };
 
             return searchInfo;
         }
 
-
         public SearchInfo GetMassachussettsSiteLicenseInfo()
         {
             var searchInfo = new SearchInfo
             {
-                Url = "https://madph.mylicense.com/verification/",
+                Url = "https://findmydoctor.mass.gov/",
                 StateName = "Massachussetts",
                 FirstName = _firstName,
                 LastName = _lastName,
-                LastNameSelector = @"#t_web_lookup__last_name",
-                FirstNameSelector = @"#t_web_lookup__first_name",
-                SearchButtonSelector = "#sch_button",
-                LicenseNumberSelector = "tr:nth-child(2) > td:nth-child(2) > span",
-                LicenseStatusSelector = "tr:nth-child(2) > td:nth-child(4) > span",
-                DropdownSelector = @"#t_web_lookup__license_status_name",
-                DropdownSelectValue = "Current"
+                LastNameSelector = @"#physician-last-name-input",
+                FirstNameSelector = @"#physician-first-name-input",
+                SearchButtonSelector = "div.search-criteria-wrapper > div:nth-child(5) > button",
+                LicenseNumberSelector = "div > span > hyperlink-cell-renderer > a",
+                LicenseStatusSelector = "div:nth-child(4) > div > span",
+                ProviderNameSelector = "div > div > div > div:nth-child(2) > div > span",
+                IsTable = true
             };
 
             return searchInfo;
@@ -701,10 +1266,13 @@ namespace DocLicenseLookupApi
                 SearchButtonSelector = srchBtnSelector,
                 FirstNameSelector = firstNameSelector,
                 LastNameSelector = lastNameSelector,
+                ProviderNameSelector = "#ctl00_PlaceHolderMain_licenseeGeneralInfo_lblContactName_value"
             };
 
             return searchInfo;
         }
+
+        //MN site being updated
 
         public SearchInfo GetMinnesotaSiteLicenseInfo()
         {
@@ -748,9 +1316,9 @@ namespace DocLicenseLookupApi
                 LicenseNumberSelector = @"#license_no",
                 LicenseExpirationSelector = @"#expiration_date",
                 LicenseStatusSelector = @"#sec_lic_status",
+                ProviderNameSelector = "#full_name",
                 StateName = "New Jersey"
             };
-
 
             return searchInfo;
         }
@@ -766,15 +1334,14 @@ namespace DocLicenseLookupApi
                 LastNameSelector = "#j_id0\\:j_id110\\:lastName",
                 FirstNameSelector = "#j_id0\\:j_id110\\:firstName",
                 SearchButtonSelector = ".searchButton",
-                LicenseNumberSelector = "tr:last-child > td.LicenseEndorsementNumber > div",
-                LicenseStatusSelector = "tr:last-child > td.Status"
-
+                LicenseNumberSelector = "tr > td.LicenseEndorsementNumber > div",
+                LicenseStatusSelector = "tr > td.Status",
+                ProviderNameSelector = "tr > td.Name.sorting_1",
+                IsTable = true
             };
 
             return searchInfo;
         }
-
-
 
         public SearchInfo GetTexasLicenseInfo()
         {
@@ -788,6 +1355,7 @@ namespace DocLicenseLookupApi
                 FirstNameSelector = @"#BodyContent_tbFirstName",
                 SearchButtonSelector = @"#BodyContent_btnSearch",
                 SecondSearchButtonSelector = @"#BodyContent_gvSearchResults > tbody > tr:nth-child(2) > td:nth-child(1) > a",
+                ProviderNameSelector = "#BodyContent_lblHeaderName",
                 LicenseNumberSelector = @"#BodyContent_lblLicenseNumber",
                 LicenseExpirationSelector = @"#BodyContent_lblLicenseExpirationDate",
                 LicenseStatusSelector = @"#BodyContent_lblRegStatus",
@@ -812,6 +1380,7 @@ namespace DocLicenseLookupApi
                 LicenseNumberSelector = "td:nth-child(1) > div > span",
                 LicenseExpirationSelector = "td:nth-child(7) > div > span",
                 LicenseStatusSelector = @"td:nth-child(3) > div > span",
+                ProviderNameSelector = "td:nth-child(4) > div",
             };
 
             return searchInfo;
@@ -832,6 +1401,7 @@ namespace DocLicenseLookupApi
                 LicenseNumberSelector = @"body > div.body-bg > div.container.body-content > div.panel.panel-info > div.panel-body > table > tbody > tr:nth-child(1) > td",
                 LicenseExpirationSelector = @"body > div.body-bg > div.container.body-content > div.panel.panel-info > div.panel-body > table > tbody > tr:nth-child(6) > td",
                 LicenseStatusSelector = @"body > div.body-bg > div.container.body-content > div.panel.panel-info > div.panel-body > table > tbody > tr:nth-child(7) > td",
+                ProviderNameSelector = "tr:nth-child(3) > td",
                 AcceptUsageTermsBtnSelector = @"",
                 IsActiveLicenseSelector = @""
             };
@@ -853,9 +1423,11 @@ namespace DocLicenseLookupApi
                 LastNameSelector = @"#inputLastName",
                 FirstNameSelector = @"#inputFirstName",
                 SearchButtonSelector = @"#licName > div.col-md-offset-5.col-md-3 > button",
-                LicenseNumberSelector = @"#frmMain > table:nth-child(3) > tbody > tr > td:nth-child(2)",
-                LicenseExpirationSelector = @"#frmMain > table:nth-child(3) > tbody > tr > td:nth-child(5)",
-                LicenseStatusSelector = @"#frmMain > table:nth-child(3) > tbody > tr > td:nth-child(3)",
+                LicenseNumberSelector = @"#form > table > tbody > tr > td:nth-child(3)",
+                LicenseExpirationSelector = @"#form > table > tbody > tr > td:nth-child(4)",
+                LicenseStatusSelector = @"#form > table > tbody > tr > td:nth-child(5)",
+                ProviderNameSelector = "#form > table > tbody > tr > td:nth-child(1) > a",
+                IsTable = true,
                 AcceptUsageTermsBtnSelector = @"",
                 IsActiveLicenseSelector = @"",
                 SearchTypeInitDropdownSelector = @"#selectType",
@@ -868,7 +1440,6 @@ namespace DocLicenseLookupApi
 
         public SearchInfo GetWestVirginiaDOLicenseInfo()
         {
-            //todo: no results found for sw.
             var searchInfo = new SearchInfo
             {
                 Url = "https://www.wvbdosteo.org/verify/",
@@ -880,6 +1451,7 @@ namespace DocLicenseLookupApi
                 LicenseNumberSelector = @"#printcontent > table:nth-child(1) > tbody > tr > td:nth-child(3)",
                 LicenseExpirationSelector = @"#printcontent > table:nth-child(1) > tbody > tr > td:nth-child(4)",
                 LicenseStatusSelector = "#printcontent > table:nth-child(1) > tbody > tr > td:nth-child(4)",
+                ProviderNameSelector = "#printcontent > table:nth-child(1) > tbody > tr > td:nth-child(1)",
                 DropdownSelector = @"#licType",
                 DropdownSelectValue = @"BoardXP"
             };
@@ -889,7 +1461,6 @@ namespace DocLicenseLookupApi
 
         public SearchInfo GetWyomingLicenseInfo()
         {
-            //todo: no results found for sw.
             var searchInfo = new SearchInfo
             {
                 Url = "https://wybomprod.glsuite.us/GLSuiteWeb/Clients/WYBOM/Public/LicenseeSearch.aspx?SearchType=Physician",
@@ -899,8 +1470,10 @@ namespace DocLicenseLookupApi
                 LastNameSelector = @"#ContentPlaceHolder1_txtLastName",
                 FirstNameSelector = @"#ContentPlaceHolder1_txtFirstName",
                 SearchButtonSelector = @"#ContentPlaceHolder1_btnSubmit",
-                LicenseNumberSelector = @"#ContentPlaceHolder1_dtgResults > tbody > tr.Georgia11 > td:nth-child(4)",
-                LicenseExpirationSelector = @"#ContentPlaceHolder1_dtgResults > tbody > tr.Georgia11 > td:nth-child(7)"
+                LicenseNumberSelector = @"#ContentPlaceHolder1_dtgResults > tbody > tr > td:nth-child(4):not(.th)",
+                LicenseExpirationSelector = @"#ContentPlaceHolder1_dtgResults > tbody > tr > td:nth-child(7):not(.th)",
+                ProviderNameSelector = "#ContentPlaceHolder1_dtgResults > tbody > tr > td:nth-child(1):not(.th)",
+                IsTable = true
             };
 
             return searchInfo;
@@ -908,7 +1481,6 @@ namespace DocLicenseLookupApi
 
         public SearchInfo GetDistrictOfColumbiaLicenseInfo()
         {
-            //todo: no results found for sw.
             var searchInfo = new SearchInfo
             {
                 Url = "https://dohenterprise.my.site.com/ver/s/",
@@ -918,11 +1490,13 @@ namespace DocLicenseLookupApi
                 LastNameSelector = @"#LastName",
                 FirstNameSelector = @"#FirstName",
                 SearchButtonSelector = "div > a:nth-child(15)",
-                LicenseNumberSelector = "tr:last-child > td:nth-child(2)",
-                LicenseExpirationSelector = "tr:last-child > td:nth-child(6)",
-                LicenseStatusSelector = "tr:last-child > td:nth-child(4)",
+                LicenseNumberSelector = "tr > td:nth-child(2)",
+                LicenseExpirationSelector = "tr > td:nth-child(6)",
+                LicenseStatusSelector = "tr > td:nth-child(4)",
+                ProviderNameSelector = "tr > td:nth-child(1) > a",
                 DropdownSelector = @"#Status",
                 DropdownSelectValue = "Active",
+                IsTable = true,
             };
 
             return searchInfo;
@@ -939,15 +1513,17 @@ namespace DocLicenseLookupApi
                 LastNameSelector = "#j_id0\\:j_id111\\:lastName",
                 FirstNameSelector = "#j_id0\\:j_id111\\:firstName",
                 SearchButtonSelector = @".searchButton",
-                SecondSearchButtonSelector = @".expand",
-                LicenseNumberSelector = @".expand",
-                LicenseStatusSelector = @"td.Status"
+                //SecondSearchButtonSelector = @".expand",
+                LicenseNumberSelector = @"tr > td.LicenseEndorsementNumber > div",
+                LicenseStatusSelector = @" tr > td.Status",
+                ProviderNameSelector = @"tr > td.Name.sorting_1",
+                IsTable = true
             };
 
             return searchInfo;
         }
 
-        public SearchInfo GetIdahoLicenseInfo()
+        public SearchInfo GetIndianaLicenseInfo()
         {
             var searchInfo = new SearchInfo
             {
@@ -958,19 +1534,21 @@ namespace DocLicenseLookupApi
                 LastNameSelector = "#t_web_lookup__last_name",
                 FirstNameSelector = "#t_web_lookup__first_name",
                 SearchButtonSelector = @"#sch_button",
-                LicenseNumberSelector = "td:nth-child(2) > span",
-                LicenseStatusSelector = "td:nth-child(5) > span",
+                LicenseNumberSelector = "#datagrid_results > tbody > tr > td:nth-child(2) > span",
+                LicenseStatusSelector = "#datagrid_results > tbody > tr > td:nth-child(5) > span",
+                IsTable = true,
+                ProviderNameSelector = "#datagrid_results > tbody > tr > td:nth-child(1) > table > tbody > tr:nth-child(1) > td"
             };
 
             return searchInfo;
         }
 
-        public SearchInfo GetIndianaLicenseInfo()
+        public SearchInfo GetIdahoLicenseInfo()
         {
             var searchInfo = new SearchInfo
             {
                 Url = "https://apps-dopl.idaho.gov/IBOMPublic/LPRBrowser.aspx",
-                StateName = "Indiana",
+                StateName = "Idaho",
                 FirstName = _firstName,
                 LastName = _lastName,
                 LastNameSelector = "#CPH1_txtsrcApplicantLastName",
@@ -979,6 +1557,8 @@ namespace DocLicenseLookupApi
                 LicenseNumberSelector = "#CPH1_myDataGrid > tbody > tr.GridItemStyle > td:nth-child(3) > a",
                 LicenseStatusSelector = @"#CPH1_myDataGrid > tbody > tr.GridItemStyle > td:nth-child(5)",
                 LicenseExpirationSelector = "#CPH1_myDataGrid > tbody > tr.GridItemStyle > td:nth-child(4)",
+                ProviderNameSelector = "#CPH1_myDataGrid > tbody > tr.GridItemStyle > td:nth-child(2)",
+                IsTable = true,
             };
 
             return searchInfo;
@@ -992,14 +1572,13 @@ namespace DocLicenseLookupApi
                 StateName = "Iowa",
                 FirstName = _firstName,
                 LastName = _lastName,
+                ProviderNameSelector = "mat-row:nth-child(2) > mat-cell.mat-cell.cdk-cell.cdk-column-NameLast.mat-column-NameLast.ng-star-inserted > div",
                 LastNameSelector = "input[name=lastname]",
                 FirstNameSelector = "input[name=firstname]",
                 SearchButtonSelector = "button.mat-primary",
                 LicenseNumberSelector = "mat-cell.mat-cell.cdk-cell.cdk-column-ReferenceFile.mat-column-ReferenceFile.ng-star-inserted > div",
                 LicenseStatusSelector = "mat-cell.mat-cell.cdk-cell.cdk-column-StatusDesc.mat-column-StatusDesc.ng-star-inserted > div"
-
             };
-
 
             return searchInfo;
         }
@@ -1010,16 +1589,14 @@ namespace DocLicenseLookupApi
             {
                 Url = "https://pr.mo.gov/licensee-search-division.asp",
                 StateName = "Missouri",
-                // FirstName = _firstName,
                 LastName = $"{_lastName}, {_firstName}",
                 LastNameSelector = "div:nth-child(4) > input",
                 SearchButtonSelector = "button.btn.btn-primary",
                 LicenseNumberSelector = "tr:nth-child(3) > td:nth-child(2)",
                 LicenseExpirationSelector = "tr:nth-child(4) > td:nth-child(2)",
                 SecondSearchButtonSelector = "tr:nth-child(2) > td:nth-child(5) > a",
-                RadioSelector = "#optionsRadios2"
-
-
+                RadioSelector = "#optionsRadios2",
+                ProviderNameSelector = "tr:nth-child(1) > td:nth-child(2)"
             };
 
             return searchInfo;
@@ -1030,7 +1607,6 @@ namespace DocLicenseLookupApi
             if (_isDOSearch)
                 return GetNevadaDOLicenseInfo();
 
-
             var searchInfo = new SearchInfo
             {
                 Url = "https://nsbme.us.thentiacloud.net/webs/nsbme/register",
@@ -1038,16 +1614,16 @@ namespace DocLicenseLookupApi
                 LastName = $"{_firstName} {_lastName}",
                 LastNameSelector = "#keywords",
                 SearchButtonSelector = "div.input-group.hd-search > div > button",
-                LicenseNumberSelector = "div.hd-box-container.profile > div:nth-child(2) > div",
-                LicenseStatusSelector = "div.hd-box-container.profile > div:nth-child(4) > div",
-                LicenseExpirationSelector = "div.hd-box-container.profile > div:nth-child(6) > div",
-                SecondSearchButtonSelector = "tr > td:nth-child(10) > a"
+                LicenseNumberSelector = "tr > td:nth-child(1)",
+                LicenseStatusSelector = "tr > td:nth-child(8)",
+                ProviderNameSelector = "tr > td:nth-child(3)",
+                IsTable = true
+                //  LicenseExpirationSelector = "div.hd-box-container.profile > div:nth-child(6) > div",
+                // SecondSearchButtonSelector = "tr > td:nth-child(10) > a"
             };
-
 
             return searchInfo;
         }
-
 
         public SearchInfo GetNevadaDOLicenseInfo()
         {
@@ -1055,15 +1631,15 @@ namespace DocLicenseLookupApi
             {
                 Url = "https://nsbom.portalus.thentiacloud.net/webs/portal/register/#/",
                 StateName = "Nevada",
-                // FirstName = _firstName,
                 LastName = $"{_firstName} {_lastName}",
                 LastNameSelector = "#keywords",
                 SearchButtonSelector = "button > span",
                 LicenseNumberSelector = "tr > td:nth-child(1)",
                 LicenseStatusSelector = "tr > td:nth-child(6)",
-                LicenseExpirationSelector = "td:nth-child(7)"
+                LicenseExpirationSelector = "td:nth-child(7)",
+                ProviderNameSelector = "tr > td:nth-child(2)",
+                IsTable = true
             };
-
 
             return searchInfo;
         }
@@ -1080,13 +1656,12 @@ namespace DocLicenseLookupApi
                 FirstNameSelector = "#t_web_lookup__first_name",
                 SearchButtonSelector = "#sch_button",
                 LicenseNumberSelector = "td:nth-child(4) > span",
-                LicenseStatusSelector = "td:nth-child(5) > span"
+                LicenseStatusSelector = "td:nth-child(5) > span",
+                ProviderNameSelector = "#datagrid_results > tbody > tr >td:nth-child(1)"
             };
-
 
             return searchInfo;
         }
-
 
         public SearchInfo GetNewYorkLicenseInfo()
         {
@@ -1097,19 +1672,43 @@ namespace DocLicenseLookupApi
                 LastName = $"{_firstName} {_lastName}",
                 LastNameSelector = "#searchInput",
                 SearchButtonSelector = "#goButton",
-                LicenseNumberSelector = "td:nth-child(4) > span",
-                LicenseStatusSelector = "td:nth-child(5) > span",
+                LicenseNumberSelector = "tr > td:nth-child(1) > a",
+                ProviderNameSelector = "tr > td:nth-child(2)",
+                IsTable = true,
                 InitComboBoxSelector = "#vs12-combobox",
                 InitComboBoxValue = "Licensee Name",
                 InitComboBox2Selector = "#vs19-combobox",
-                InitComboBox2Value = "All",
+                InitComboBox2Value = "All Professions (ALL)",
                 IsSearchButtonHidden = true,
+                HasInitModal = true,
+                AcceptTermsAndConditionsCheckboxSelector = "#edit-i-agree-to-the-terms-and-condition",
+                HasRecaptcha2 = true,
+                SiteKey = @"6LdTmh0pAAAAAEcCfQ6zY2lKvj62CF3TryPCGWYm",
             };
-
 
             return searchInfo;
         }
 
+        public SearchInfo GetTennesseeLicenseInfo()
+        {
+            var searchInfo = new SearchInfo
+            {
+                Url = "https://apps.health.tn.gov/Licensure/default.aspx",
+                StateName = "Tennessee",
+                LastName = _lastName,
+                FirstName = _firstName,
+                LastNameSelector = "#ctl00_PageContent_txtLastName",
+                FirstNameSelector = "#ctl00_PageContent_txtFirstName",
+                SearchButtonSelector = "#ctl00_PageContent_btnSubmit",
+                LicenseNumberSelector = "tr > td:nth-child(3) > p",
+                ProviderNameSelector = "#ctl00_PageContent_dlstLicensure > tbody > tr > td > table > tbody > tr > td:nth-child(2)",
+                IsTable = true,
+                HasImageRecaptcha = true,
+                CaptchaAnswerSelector = "span:nth-child(2) > input[type=text]"
+            };
+
+            return searchInfo;
+        }
 
         public SearchInfo GetFloridaLicenseInfo()
         {
@@ -1119,12 +1718,13 @@ namespace DocLicenseLookupApi
                 StateName = "florida",
                 LastName = _lastName,
                 FirstName = _firstName,
-
                 LastNameSelector = "#SearchDto_LastName",
                 FirstNameSelector = "#SearchDto_FirstName",
                 SearchButtonSelector = "fieldset > p > input",
-                LicenseNumberSelector = "tr:last-child > td:nth-child(1) > a",
-                LicenseStatusSelector = "tr:last-child > td:nth-child(5)"
+                LicenseNumberSelector = "tr > td:nth-child(1) > a",
+                LicenseStatusSelector = "tr > td:nth-child(5)",
+                ProviderNameSelector = "tr > td:nth-child(2)",
+                IsTable = true,
             };
 
             return searchInfo;
@@ -1138,12 +1738,13 @@ namespace DocLicenseLookupApi
                 StateName = "North Carolina",
                 LastName = _lastName,
                 FirstName = _firstName,
-
                 FirstNameSelector = "#txtFirst",
                 LastNameSelector = "#txtLast",
                 SearchButtonSelector = "#btnSubmit",
-                LicenseNumberSelector = "tr:last-child > td:nth-child(4)",
-                LicenseStatusSelector = "tr:last-child > td:nth-child(5) > span",
+                LicenseNumberSelector = "tr > td:nth-child(4)",
+                LicenseStatusSelector = "tr > td:nth-child(5) > span",
+                ProviderNameSelector = "tr > td:nth-child(2) > a",
+                IsTable = true
             };
 
             return searchInfo;
@@ -1157,7 +1758,6 @@ namespace DocLicenseLookupApi
                 StateName = "New mexico",
                 LastName = _lastName,
                 FirstName = _firstName,
-
                 FirstNameSelector = "input[type=text]:nth-child(7)",
                 LastNameSelector = "input[type=text]:nth-child(5)",
                 SearchButtonSelector = "input[type=submit]",
@@ -1166,12 +1766,9 @@ namespace DocLicenseLookupApi
                 LicenseExpirationSelector = "tr:nth-child(5) > td:nth-child(4) > font"
             };
 
-
             return searchInfo;
         }
 
-        // public  SearchInfo GetOregonLicenseInfo() => await GetDocFinderLicenseInfo("Oregon", _firstName, lastName);
-        //    public  SearchInfo GetNorthDakotaLicenseInfo() => await GetDocFinderLicenseInfo("North Dakota", _firstName, lastName);
         public SearchInfo GetKansasLicenseInfo()
         {
             var searchInfo = new SearchInfo
@@ -1183,8 +1780,10 @@ namespace DocLicenseLookupApi
                 LastNameSelector = "#lastName",
                 FirstNameSelector = "#firstName",
                 SearchButtonSelector = "#id_submit",
-                LicenseNumberSelector = "tr:last-child > td:nth-child(3)",
-                LicenseStatusSelector = "tr:last-child > td:nth-child(5)",
+                LicenseNumberSelector = "tr > td:nth-child(3)",
+                LicenseStatusSelector = "tr > td:nth-child(5)",
+                ProviderNameSelector = "tr > td:nth-child(1) > a",
+                IsTable = true
             };
 
             return searchInfo;
@@ -1204,14 +1803,13 @@ namespace DocLicenseLookupApi
                 LicenseStatusSelector = "#Lic_Status",
                 LicenseExpirationSelector = "#Expiration_Date",
                 SecondSelectDropdown = "#listbox_Names > option",
-                SecondSearchButtonSelector = "#Btn_Name"
+                SecondSearchButtonSelector = "#Btn_Name",
+                ProviderNameSelector = "#Name"
             };
-
 
             return searchInfo;
         }
     }
-
 }
 
 
