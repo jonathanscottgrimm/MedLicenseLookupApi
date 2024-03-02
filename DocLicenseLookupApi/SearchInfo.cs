@@ -56,6 +56,7 @@ namespace DocLicenseLookupApi
 
         public string PostSearchBtnRecaptcha2ContinueButton { get; set; }
         public string CustomReptchaResponseId { get; set; }
+        public string NoRecordsSelector { get; set; }
 
         public bool IsTable { get; set; }
 

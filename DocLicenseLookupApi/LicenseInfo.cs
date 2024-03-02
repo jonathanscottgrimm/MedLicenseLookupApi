@@ -16,6 +16,7 @@ namespace DocLicenseLookupApi
         public string LicenseStatus { get; set; }
         public string LicenseExpiration { get; set; }
         public string ErrorMessage { get; set; }
+        public bool ShowRetryButton { get; set; }
 
     }
 }

@@ -1,11 +1,8 @@
 ﻿using Polly.Retry;
 using Polly;
 using PuppeteerSharp;
-using System.Collections.Concurrent;
 using AntiCaptchaAPI;
-using System.Diagnostics;
 using TwoCaptcha.Captcha;
-using System.Reflection.Metadata;
 
 namespace DocLicenseLookupApi
 {
@@ -29,12 +26,12 @@ namespace DocLicenseLookupApi
        3, // Number of retries
         (retryAttempt) =>
         {
-            Debug.WriteLine($"Retrying attempt {retryAttempt}.");
+            Console.WriteLine($"Retrying attempt {retryAttempt}.");
             return TimeSpan.FromSeconds(0); // Exponential back-off
         },
         onRetry: (exception, timespan) =>
         {
-            Debug.WriteLine($"Retry scheduled after {timespan.TotalSeconds} seconds due to: {exception.Message}");
+            Console.WriteLine($"Retry scheduled after {timespan.TotalSeconds} seconds due to: {exception.Message}");
         });
         }
 
@@ -42,6 +39,7 @@ namespace DocLicenseLookupApi
         private async Task<IEnumerable<LicenseInfo>> GetLicenseInfoForSelectedStates(List<SearchInfo> statesList)
         {
             var resultsList = new List<LicenseInfo>();
+
 
             using (var browserService = new BrowserService())
             {
@@ -56,7 +54,24 @@ namespace DocLicenseLookupApi
                     try
                     {
                         var licenseInfo = await GetLicenseInfoFromBasicSite(browserService, state);
-                        resultsList.AddRange(licenseInfo);
+
+                        if (licenseInfo.Any())
+                        {
+                            return licenseInfo; // Return the license info if available
+                        }
+                        else
+                        {
+                            // Create and return a new LicenseInfo object with ShowRetryButton set to true
+                            return new List<LicenseInfo>
+                        {
+                            new LicenseInfo
+                            {
+                                State = state.StateName,
+                                ShowRetryButton = true
+                            }
+                        };
+
+                        }
                     }
                     catch (Exception ex)
                     {
@@ -66,212 +81,28 @@ namespace DocLicenseLookupApi
                     {
                         semaphore.Release();
                     }
+
+
+                    return new List<LicenseInfo>
+                    {
+                        new LicenseInfo
+                        {
+                            State = state.StateName,
+                            ShowRetryButton = true
+                        }
+                    };
+
                 }).ToList();
 
                 await Task.WhenAll(tasks);
+
+
+                resultsList = tasks.SelectMany(t => t.Result).ToList();
             }
+          
 
             return resultsList;
         }
-
-
-        public async Task<IEnumerable<LicenseInfo>> GetGroupOne()
-        {
-            var statesList = GetGroupOneSearchInfo();
-
-            return await GetLicenseInfoForSelectedStates(statesList);
-        }
-
-        public async Task<IEnumerable<LicenseInfo>> GetGroupTwo()
-        {
-            var statesList = GetGroupTwoSearchInfo();
-
-            return await GetLicenseInfoForSelectedStates(statesList);
-        }
-
-        public async Task<IEnumerable<LicenseInfo>> GetGroupThree()
-        {
-            var statesList = GetGroupThreeSearchInfo();
-
-            return await GetLicenseInfoForSelectedStates(statesList);
-        }
-
-        public async Task<IEnumerable<LicenseInfo>> GetGroupFour()
-        {
-            var statesList = GetGroupFourSearchInfo();
-
-            return await GetLicenseInfoForSelectedStates(statesList);
-        }
-
-        public async Task<IEnumerable<LicenseInfo>> GetGroupFive()
-        {
-            var statesList = GetGroupFiveSearchInfo();
-
-            return await GetLicenseInfoForSelectedStates(statesList);
-        }
-
-        public async Task<IEnumerable<LicenseInfo>> GetGroupSix()
-        {
-            var statesList = GetGroupSixSearchInfo();
-
-            return await GetLicenseInfoForSelectedStates(statesList);
-        }
-
-        public async Task<IEnumerable<LicenseInfo>> GetGroupSeven()
-        {
-            var statesList = GetGroupSevenSearchInfo();
-
-            return await GetLicenseInfoForSelectedStates(statesList);
-        }
-
-        public async Task<IEnumerable<LicenseInfo>> GetGroupEight()
-        {
-            var statesList = GetGroupEightSearchInfo();
-
-            return await GetLicenseInfoForSelectedStates(statesList);
-        }
-
-        public async Task<IEnumerable<LicenseInfo>> GetGroupNine()
-        {
-            var statesList = GetGroupNineSearchInfo();
-
-            return await GetLicenseInfoForSelectedStates(statesList);
-        }
-
-        public async Task<IEnumerable<LicenseInfo>> GetGroupTen()
-        {
-            var statesList = GetGroupTenSearchInfo();
-
-            return await GetLicenseInfoForSelectedStates(statesList);
-        }
-
-        private List<SearchInfo> GetGroupOneSearchInfo()
-        {
-            return new List<SearchInfo>
-           {
-                GetAlabamaLicenseInfo(),
-                GetAlaskaLicenseInfo(),
-                GetArizonaLicenseInfo(),
-                GetArkansasLicenseInfo(),
-                GetCaliforniaLicenseInfo()
-            };
-        }
-
-        private List<SearchInfo> GetGroupTwoSearchInfo()
-        {
-            return new List<SearchInfo>
-            {
-                GetColoradoLicenseInfo(),
-                GetConnecticutLicenseInfo(),
-                GetDelawareLicenseInfo(),
-                GetDistrictOfColumbiaLicenseInfo(),
-                GetFloridaLicenseInfo()
-            };
-        }
-
-        private List<SearchInfo> GetGroupThreeSearchInfo()
-        {
-            return new List<SearchInfo>
-            {
-                GetGeorgiaLicenseInfo(),
-                GetHawaiiLicenseInfo(),
-
-                GetIllinoisLicenseInfo(),
-                GetIndianaLicenseInfo(),
-            };
-        }
-        //todo: fix group 4
-        private List<SearchInfo> GetGroupFourSearchInfo()
-        {
-            return new List<SearchInfo>
-           {
-              GetIowaLicenseInfo(),
-              GetKansasLicenseInfo(),
-              GetKentuckyLicenseInfo(),
-              GetLouisianaSiteLicenseInfo(),
-               GetMaineSiteLicenseInfo(),
-            };
-        }
-
-        //tdo: michigan and minnesota failing on multi search
-        private List<SearchInfo> GetGroupFiveSearchInfo()
-        {
-            return new List<SearchInfo>
-           {
-              GetMarylandLicenseInfo(),
-           GetMassachussettsSiteLicenseInfo(),
-              GetMichiganSiteLicenseInfo(),
-          GetMinnesotaSiteLicenseInfo(),
-          GetMississippiLicenseInfo(),
-            };
-        }
-
-        //todo: fix group six on multi result search. nevADA failing
-        private List<SearchInfo> GetGroupSixSearchInfo()
-        {
-            return new List<SearchInfo>
-           {
-                GetMissouriLicenseInfo(),
-
-         GetNebraskaLicenseInfo(),
-             GetNevadaLicenseInfo(),
-              GetNewHampshireLicenseInfo(),
-            };
-        }
-
-        private List<SearchInfo> GetGroupSevenSearchInfo()
-        {
-            return new List<SearchInfo>
-           {
-                GetNewJerseyLicenseInfo(),
-                GetNewMexicoLicenseInfo(),
-          GetNewYorkLicenseInfo(),
-           GetNorthCarolinaLicenseInfo(),
-        
-            };
-        }
-
-        private List<SearchInfo> GetGroupEightSearchInfo()
-        {
-            return new List<SearchInfo>
-           {
-                    GetOhioLicenseInfo(),
-        GetPennsylvaniaLicenseInfo(),
-              GetRhodeIslandLicenseInfo(),
-         GetSouthCarolinaLicenseInfo(),
-          GetTennesseeLicenseInfo()
-            };
-        }
-
-        private List<SearchInfo> GetGroupNineSearchInfo()
-        {
-            return new List<SearchInfo>
-           {
-                  GetTexasLicenseInfo(),
-             GetUtahLicenseInfo(),
-               GetVermontLicenseInfo(),
-                 GetNorthDakotaLicenseInfo(),
-
-             GetWestVirginiaLicenseInfo(),
-            };
-        }
-
-        private List<SearchInfo> GetGroupTenSearchInfo()
-        {
-            return new List<SearchInfo>
-           {
-                  GetMontanaLicenseInfo(),
-
-              GetWyomingLicenseInfo(),
-              GetWisconsinLicenseInfo(),
-              
-                GetVirginiaLicenseInfo(),
-                   GetIdahoLicenseInfo(),
-
-            };
-        }
-
-
 
         public async Task<List<LicenseInfo>> GetLicenseInfoFromBasicSite(BrowserService browserService, SearchInfo searchInfo)
         {
@@ -282,6 +113,7 @@ namespace DocLicenseLookupApi
                 try
                 {
                     var page = await context.NewPageAsync();
+                    await page.WaitForNetworkIdleAsync();
 
                     // await page.SetJavaScriptEnabledAsync(false);
 
@@ -292,7 +124,10 @@ namespace DocLicenseLookupApi
                     && searchInfo.StateName.ToLowerInvariant() != "maine"
                      && searchInfo.StateName.ToLowerInvariant() != "connecticut"
                      && searchInfo.StateName.ToLowerInvariant() != "alaska"
-                     && searchInfo.StateName.ToLowerInvariant() != "pennsylvania")
+                     && searchInfo.StateName.ToLowerInvariant() != "pennsylvania"
+                     && searchInfo.StateName.ToLowerInvariant() != "alabama"
+                      && searchInfo.StateName.ToLowerInvariant() != "arizona"
+                      )
                     {
                         await page.SetRequestInterceptionAsync(true);
 
@@ -310,10 +145,12 @@ namespace DocLicenseLookupApi
                             }
                         };
                     }
-                    //    await page.SetViewportAsync(new ViewPortOptions { Width = 1280, Height = 800 });
+
                     await page.GoToAsync(searchInfo.Url);
+                    //  await page.SetViewportAsync(new ViewPortOptions { Width = 1920, Height = 1080 });
 
-
+                    if (searchInfo.StateName.ToLower() == "montana" || searchInfo.StateName.ToLower() == "illinois" || searchInfo.StateName.ToLower() == "alaska")
+                        await Task.Delay(1000);
 
                     if (searchInfo.StateName.ToLower() == "connecticut")
                         await page.ReloadAsync();
@@ -391,6 +228,8 @@ namespace DocLicenseLookupApi
                     }
                     else
                     {
+                      
+
                         await page.WaitForSelectorAsync(searchInfo.SearchButtonSelector);
                     }
 
@@ -422,13 +261,16 @@ namespace DocLicenseLookupApi
 
                     if (searchInfo.StateName.ToLowerInvariant() != "maine" && searchInfo.StateName.ToLowerInvariant() != "vermont")
                     {
-                        if (searchInfo.StateName.ToLower() == "pennsylvania")
+                        if (searchInfo.StateName.ToLower() == "pennsylvania" || searchInfo.StateName.ToLower() == "utah" || searchInfo.StateName.ToLower() == "illinois" || searchInfo.StateName.ToLower() == "alaska")
                             await Task.Delay(1000);
 
                         await page.ClickAsync(searchInfo.SearchButtonSelector);
 
-                        if (searchInfo.StateName.ToLower() == "montana")
-                            await Task.Delay(15000);
+                        if (searchInfo.StateName.ToLower() == "oklahoma")
+                            await page.WaitForNetworkIdleAsync();
+
+                        if (searchInfo.StateName.ToLower() == "oregon" || searchInfo.StateName.ToLower() == "hawaii" || searchInfo.StateName.ToLower() == "montana")
+                            await Task.Delay(30000);
                     }
                     else
                     {
@@ -459,6 +301,28 @@ namespace DocLicenseLookupApi
                         await page.ClickAsync(searchInfo.SecondSelectDropdown);
                     }
 
+
+                    //no records check 
+
+                    //IElementHandle? elNoRecords = null;
+                    //if (searchInfo.StateName.ToLower() == "alaska")
+                    //{
+                    //    await page.WaitForNavigationAsync();
+                    //}
+                    //elNoRecords = await page.QuerySelectorAsync(searchInfo.NoRecordsSelector);
+                    //if (elNoRecords != null)
+                    //{
+                    //    return new List<LicenseInfo>
+                    //    {
+                    //        new LicenseInfo
+                    //        {
+                    //            State = searchInfo.StateName,
+                    //            ErrorMessage = "No Licenses Found."
+                    //        }
+                    //    };
+                    //}
+
+
                     if (!string.IsNullOrEmpty(searchInfo.SecondSearchButtonSelector))
                     {
                         await page.WaitForSelectorAsync(searchInfo.SecondSearchButtonSelector);
@@ -470,6 +334,7 @@ namespace DocLicenseLookupApi
                         var pages = await browserService.Browser.PagesAsync();
                         page = pages.LastOrDefault();
                     }
+
 
                     if (!string.IsNullOrEmpty(searchInfo.UniqueResultsSelector))
                     {
@@ -501,7 +366,7 @@ namespace DocLicenseLookupApi
                         if (!string.IsNullOrEmpty(searchInfo.ProviderNameSelector))
                         {
                             var elProviderName = await page.QuerySelectorAsync(searchInfo.ProviderNameSelector);
-                            providerName = (await (await elProviderName.GetPropertyAsync("textContent")).JsonValueAsync()).ToString()?.Replace(" ", "").Trim() ?? "Not Available";
+                            providerName = (await (await elProviderName.GetPropertyAsync("textContent")).JsonValueAsync()).ToString();
                         }
 
 
@@ -526,7 +391,7 @@ namespace DocLicenseLookupApi
                             var elNames = await page.QuerySelectorAllAsync(searchInfo.ProviderNameSelector);
                             foreach (var el in elNames)
                             {
-                                var name = (await (await el.GetPropertyAsync("textContent")).JsonValueAsync()).ToString()?.Replace(" ", "").Trim() ?? "Not Available";
+                                var name = (await (await el.GetPropertyAsync("textContent")).JsonValueAsync()).ToString();
                                 if (!name.Contains("1"))
                                     providerNames.Add(name);
                             }
@@ -585,6 +450,8 @@ namespace DocLicenseLookupApi
 
                 catch (Exception ex)
                 {
+
+                     
                     throw;
 
                     //return new LicenseInfo
@@ -606,11 +473,37 @@ namespace DocLicenseLookupApi
             });
         }
 
+        public async Task<List<LicenseInfo>> DoNoResultsCheck(IPage page, SearchInfo searchInfo)
+        {
+
+            IElementHandle? elNoRecords = null;
+            if (searchInfo.StateName.ToLower() == "alaska")
+            {
+                await page.WaitForNavigationAsync();
+            }
+            elNoRecords = await page.QuerySelectorAsync(searchInfo.NoRecordsSelector);
+            if (elNoRecords != null)
+            {
+                return new List<LicenseInfo>
+                        {
+                            new LicenseInfo
+                            {
+                                State = searchInfo.StateName,
+                                ErrorMessage = "No Licenses Found."
+                            }
+                        };
+            }
+
+            return new List<LicenseInfo>();
+        }
+
         private async Task SolveImageRecaptcha(IPage page, string captchaInputSelector, string stateName)
         {
             //var captcha = new AntiCaptcha("fe348e4a8a96a206a483b6ea98ee3751");
 
             var twoCaptcha = new TwoCaptcha.TwoCaptcha("bb743d81179f6439cb71e645192ad2cd");
+
+            // await page.SetViewportAsync(new ViewPortOptions { Width = 1920, Height = 1080 });
 
 
             await page.FocusAsync(captchaInputSelector);
@@ -673,7 +566,7 @@ namespace DocLicenseLookupApi
             }
         }
 
-        public SearchInfo GetAlabamaLicenseInfo()
+        public async Task<IEnumerable<LicenseInfo>> GetAlabamaLicenseInfo()
         {
             var searchInfo = new SearchInfo
             {
@@ -692,12 +585,15 @@ namespace DocLicenseLookupApi
                 SiteKey = "6LchcFEUAAAAAJdfnpZDr9hVzyt81NYOspe29k",
                 RecaptchaCallback = @"correctCaptcha();",
                 IsTable = true,
+                NoRecordsSelector = "#altdialog"
             };
 
-            return searchInfo;
+            var result = await GetLicenseInfoForSelectedStates(new List<SearchInfo> { searchInfo });
+
+            return result;
         }
 
-        public SearchInfo GetAlaskaLicenseInfo()
+        public async Task<IEnumerable<LicenseInfo>> GetAlaskaLicenseInfo()
         {
             var searchInfo = new SearchInfo
             {
@@ -714,15 +610,14 @@ namespace DocLicenseLookupApi
                 SiteKey = @"6LdZ7-UUAAAAACLkIDeI7ahpbRvUahh4Onk9yF1J",
                 HasPostSearchBtnRecaptcha2 = true,
                 PostSearchBtnRecaptcha2ContinueButton = "div.deptModal > div.deptModalContainer > div > div > a",
-                IsTable = true
-
-
+                IsTable = true,
+                NoRecordsSelector = "form > div:nth-child(2) > p"
             };
 
-            return searchInfo;
+            return await GetLicenseInfoForSelectedStates(new List<SearchInfo> { searchInfo });
         }
 
-        public SearchInfo GetNorthDakotaLicenseInfo()
+        public async Task<IEnumerable<LicenseInfo>> GetNorthDakotaLicenseInfo()
         {
             var searchInfo = new SearchInfo
             {
@@ -742,11 +637,11 @@ namespace DocLicenseLookupApi
                 HasInitRecaptcha2 = true
             };
 
-            return searchInfo;
+            return await GetLicenseInfoForSelectedStates(new List<SearchInfo> { searchInfo });
         }
 
 
-        public SearchInfo GetMontanaLicenseInfo()
+        public async Task<IEnumerable<LicenseInfo>> GetMontanaLicenseInfo()
         {
             var searchInfo = new SearchInfo
             {
@@ -766,10 +661,10 @@ namespace DocLicenseLookupApi
                 HasImageRecaptcha = true
             };
 
-            return searchInfo;
+            return await GetLicenseInfoForSelectedStates(new List<SearchInfo> { searchInfo });
         }
 
-        public SearchInfo GetIllinoisLicenseInfo()
+        public async Task<IEnumerable<LicenseInfo>> GetIllinoisLicenseInfo()
         {
             var searchInfo = new SearchInfo
             {
@@ -790,10 +685,10 @@ namespace DocLicenseLookupApi
                 RadioSelector = "#ctl00_MainContentPlaceHolder_ucLicenseLookup_ctl03_lbMultipleCredentialTypePrefix > option:nth-child(34)",
             };
 
-            return searchInfo;
+            return await GetLicenseInfoForSelectedStates(new List<SearchInfo> { searchInfo });
         }
 
-        public SearchInfo GetWisconsinLicenseInfo()
+        public async Task<IEnumerable<LicenseInfo>> GetWisconsinLicenseInfo()
         {
             var searchInfo = new SearchInfo
             {
@@ -813,10 +708,10 @@ namespace DocLicenseLookupApi
                 SiteKey = "6LfXEbEUAAAAAHu-jvb4evjNCyg700VKwnnx6Vyi",
             };
 
-            return searchInfo;
+            return await GetLicenseInfoForSelectedStates(new List<SearchInfo> { searchInfo });
         }
 
-        public SearchInfo GetSouthCarolinaLicenseInfo()
+        public async Task<IEnumerable<LicenseInfo>> GetSouthCarolinaLicenseInfo()
         {
             var searchInfo = new SearchInfo
             {
@@ -836,10 +731,33 @@ namespace DocLicenseLookupApi
                 IsRecaptchaAfterSearchBtnClick = true
             };
 
-            return searchInfo;
+            return await GetLicenseInfoForSelectedStates(new List<SearchInfo> { searchInfo });
         }
 
-        public SearchInfo GetUtahLicenseInfo()
+        public async Task<IEnumerable<LicenseInfo>> GetSouthDakotaLicenseInfo()
+        {
+            var searchInfo = new SearchInfo
+            {
+                Url = "https://verify.llronline.com/LicLookup/Med/Med.aspx",
+                StateName = "South Dakota",
+                FirstName = _firstName,
+                LastName = _lastName,
+                LicenseNumberSelector = "#ctl00_ContentPlaceHolder2_gv_results > tbody > tr > td:nth-child(1) > a",
+                ProviderNameSelector = "#ctl00_ContentPlaceHolder2_gv_results > tbody > tr > td:nth-child(5)",
+                IsTable = true,
+                SearchButtonSelector = "tr:nth-child(5) > td.tdrightside > button",
+                LastNameSelector = "#ctl00_ContentPlaceHolder1_UserInputGen1_txt_lastName",
+                FirstNameSelector = "#ctl00_ContentPlaceHolder1_UserInputGen1_txt_firstName",
+                HasRecaptcha2 = true,
+                SiteKey = @"6Lc2X-saAAAAAPC6HatgHFOd8rCxCl-2yPTh44PN",
+                RecaptchaCallback = @"onSubmit()",
+                IsRecaptchaAfterSearchBtnClick = true
+            };
+
+            return await GetLicenseInfoForSelectedStates(new List<SearchInfo> { searchInfo });
+        }
+
+        public async Task<IEnumerable<LicenseInfo>> GetUtahLicenseInfo()
         {
             var searchInfo = new SearchInfo
             {
@@ -853,14 +771,39 @@ namespace DocLicenseLookupApi
                 ProviderNameSelector = "tr > td:nth-child(1) > a",
                 IsTable = true,
                 HasRecaptcha2 = true,
-                SiteKey = @"6LcQUqIUAAAAAG7lgG1BfDlhvVUuFP26QsY4Eq6_",
+                SiteKey = @"6LcQUqIUAAAAAG7lgG1BfDlhvVUuFP26QsY4Eq6_",              
                 CustomReptchaResponseId = @"#g-recaptcha-response-name"
             };
 
-            return searchInfo;
+            return await GetLicenseInfoForSelectedStates(new List<SearchInfo> { searchInfo });
         }
 
-        public SearchInfo GetGeorgiaLicenseInfo()
+        public async Task<IEnumerable<LicenseInfo>> GetWashingtonLicenseInfo()
+        {
+            var searchInfo = new SearchInfo
+            {
+                Url = "https://fortress.wa.gov/doh/providercredentialsearch/",
+                StateName = "Washington",
+                LastName = _lastName,
+                FirstName = _firstName,
+
+
+                LicenseNumberSelector = "tr.tableRow > td:nth-child(1)",
+
+                SearchButtonSelector = "#ctl00_ContentPlaceholder_SearchButton",
+                LastNameSelector = "#ctl00_ContentPlaceholder_LastNameTextBox",
+                FirstNameSelector = "#ctl00_ContentPlaceholder_FirstNameTextBox",
+                LicenseStatusSelector = " tr.tableRow > td:nth-child(7)",
+                ProviderNameSelector = "tr.tableRow > td:nth-child(4)",
+                IsTable = true,
+                HasImageRecaptcha = true,
+                CaptchaAnswerSelector = "#ctl00_ContentPlaceholder_CaptchaCodeTextBox"
+            };
+
+            return await GetLicenseInfoForSelectedStates(new List<SearchInfo> { searchInfo });
+        }
+
+        public async Task<IEnumerable<LicenseInfo>> GetGeorgiaLicenseInfo()
         {
             var searchInfo = new SearchInfo
             {
@@ -879,10 +822,34 @@ namespace DocLicenseLookupApi
                 SiteKey = @"6Ldp57EUAAAAABWjdLVKT-QThpxati6v0KV8azOS",
             };
 
-            return searchInfo;
+            return await GetLicenseInfoForSelectedStates(new List<SearchInfo> { searchInfo });
         }
 
-        public SearchInfo GetHawaiiLicenseInfo()
+        public async Task<IEnumerable<LicenseInfo>> GetOregonLicenseInfo()
+        {
+            var searchInfo = new SearchInfo
+            {
+                Url = "https://omb.oregon.gov/search",
+                StateName = "Oregon",
+                FirstName = _firstName,
+                LastName = _lastName,
+                LicenseNumberSelector = "#ctl00_ContentPlaceHolder1_dtgLicense_ctl02_lblLicNumber",
+                SearchButtonSelector = "button.btn.btn-omb.btn-alx-additional",
+                LastNameSelector = "div:nth-child(1) > input",
+                FirstNameSelector = "div:nth-child(2) > input",
+                LicenseStatusSelector = "#ctl00_ContentPlaceHolder1_dtgLicense_ctl02_lblLicStatus",
+                LicenseExpirationSelector = "#ctl00_ContentPlaceHolder1_dtgLicense_ctl02_lblLicExp",
+                ProviderNameSelector = "#ctl00_ContentPlaceHolder1_lblLicensee",
+                HasRecaptcha2 = true,
+                SiteKey = @"6LfyDrMUAAAAABVL5u_3nLqy34jIwE9soEI1Bw3F",
+                CustomReptchaResponseId = "#g-recaptcha-response-100000",
+                OpensInNewTab = true
+            };
+
+            return await GetLicenseInfoForSelectedStates(new List<SearchInfo> { searchInfo });
+        }
+
+        public async Task<IEnumerable<LicenseInfo>> GetHawaiiLicenseInfo()
         {
             var searchInfo = new SearchInfo
             {
@@ -894,7 +861,7 @@ namespace DocLicenseLookupApi
                 //SearchButtonSelector = "#business_individual-captcha-btn",
                 LastNameSelector = "#business_individual",
                 HasRecaptcha2 = true,
-                SiteKey = @"6LfE564ZAAAAAHmW1_6SbaG2P8-EqV_RhtHpMR80",
+                SiteKey = @"6LfE564ZAAAAAHmW1_6SbaG2P8-EqV_RhtHpMR80", 
                 AcceptUsageTermsBtnSelector = "#nav-business-individual-tab",
                 CustomReptchaResponseId = "#g-recaptcha-response-1",
                 SearchButtonSelector = "#business_individual-captcha-btn",
@@ -902,10 +869,10 @@ namespace DocLicenseLookupApi
                 IsTable = true,
             };
 
-            return searchInfo;
+            return await GetLicenseInfoForSelectedStates(new List<SearchInfo> { searchInfo });
         }
 
-        public SearchInfo GetMississippiLicenseInfo()
+        public async Task<IEnumerable<LicenseInfo>> GetMississippiLicenseInfo()
         {
             var searchInfo = new SearchInfo
             {
@@ -924,10 +891,10 @@ namespace DocLicenseLookupApi
                 IsTable = true,
             };
 
-            return searchInfo;
+            return await GetLicenseInfoForSelectedStates(new List<SearchInfo> { searchInfo });
         }
 
-        public SearchInfo GetNebraskaLicenseInfo()
+        public async Task<IEnumerable<LicenseInfo>> GetNebraskaLicenseInfo()
         {
             var searchInfo = new SearchInfo
             {
@@ -948,13 +915,15 @@ namespace DocLicenseLookupApi
                 IsTable = true
             };
 
-            return searchInfo;
+            return await GetLicenseInfoForSelectedStates(new List<SearchInfo> { searchInfo });
         }
 
-        public SearchInfo GetArizonaLicenseInfo()
+        //todo: no records for AZ 
+
+        public async Task<IEnumerable<LicenseInfo>> GetArizonaLicenseInfo()
         {
             if (_isDOSearch)
-                return GetArizonaLicenseDOInfo();
+                return await GetArizonaLicenseDOInfo();
 
             var searchInfo = new SearchInfo
             {
@@ -969,13 +938,14 @@ namespace DocLicenseLookupApi
                 SecondSearchButtonSelector = "td:nth-child(1) > a",
                 ProviderNameSelector = "#ContentPlaceHolder1_dtgGeneral_lblLeftColumnEntName_0 > b",
                 OpensInNewTab = true,
-                RadioSelector = "#ContentPlaceHolder1_rbName1"
+                RadioSelector = "#ContentPlaceHolder1_rbName1",
+                NoRecordsSelector = "#ContentPlaceHolder1_txtErrorName"
             };
 
-            return searchInfo;
+            return await GetLicenseInfoForSelectedStates(new List<SearchInfo> { searchInfo });
         }
 
-        public SearchInfo GetArizonaLicenseDOInfo()
+        public async Task<IEnumerable<LicenseInfo>> GetArizonaLicenseDOInfo()
         {
             var searchInfo = new SearchInfo
             {
@@ -987,13 +957,14 @@ namespace DocLicenseLookupApi
                 ProviderNameSelector = "tr > td:nth-child(3)",
                 SearchButtonSelector = "button",
                 LastNameSelector = "#keywords",
-                IsTable = true
+                IsTable = true,
+                NoRecordsSelector = "body > div.container > div > div:nth-child(2) > div > table-builder-ui > div.hidden-xs > table > tbody > tr > td > span"
             };
 
-            return searchInfo;
+            return await GetLicenseInfoForSelectedStates(new List<SearchInfo> { searchInfo });
         }
 
-        public SearchInfo GetPennsylvaniaLicenseInfo()
+        public async Task<IEnumerable<LicenseInfo>> GetPennsylvaniaLicenseInfo()
         {
             var searchInfo = new SearchInfo
             {
@@ -1010,10 +981,10 @@ namespace DocLicenseLookupApi
                 FirstNameSelector = "#fName",
             };
 
-            return searchInfo;
+            return await GetLicenseInfoForSelectedStates(new List<SearchInfo> { searchInfo });
         }
 
-        public SearchInfo GetRhodeIslandLicenseInfo()
+        public async Task<IEnumerable<LicenseInfo>> GetRhodeIslandLicenseInfo()
         {
             var searchInfo = new SearchInfo
             {
@@ -1030,10 +1001,10 @@ namespace DocLicenseLookupApi
                 FirstNameSelector = "#t_web_lookup__first_name",
             };
 
-            return searchInfo;
+            return await GetLicenseInfoForSelectedStates(new List<SearchInfo> { searchInfo });
         }
 
-        public SearchInfo GetCaliforniaLicenseInfo()
+        public async Task<IEnumerable<LicenseInfo>> GetCaliforniaLicenseInfo()
         {
             var url = "https://search.dca.ca.gov/";
             var elLicenseNumberSelector = "#lic0";
@@ -1043,7 +1014,7 @@ namespace DocLicenseLookupApi
             var firstNameSelector = "#firstName";
             var lastNameSelector = "#lastName";
 
-            return new SearchInfo
+            var searchInfo = new SearchInfo
             {
                 Url = url,
                 StateName = "California",
@@ -1057,9 +1028,11 @@ namespace DocLicenseLookupApi
                 LicenseStatusSelector = elLicenseStatusSelector,
                 ProviderNameSelector = "#\\30  > footer > ul:nth-child(2) > li:nth-child(1) > h3"
             };
+
+            return await GetLicenseInfoForSelectedStates(new List<SearchInfo> { searchInfo });
         }
 
-        public SearchInfo GetColoradoLicenseInfo()
+        public async Task<IEnumerable<LicenseInfo>> GetColoradoLicenseInfo()
         {
             var url = "https://apps2.colorado.gov/dora/licensing/lookup/licenselookup.aspx";
             var elLicenseNumberSelector = "tr > td:nth-child(3)";
@@ -1068,7 +1041,7 @@ namespace DocLicenseLookupApi
             var lastNameSelector = "#ctl00_MainContentPlaceHolder_ucLicenseLookup_ctl03_tbLastName_Contact";
 
 
-            return new SearchInfo
+            var searchInfo = new SearchInfo
             {
                 StateName = "Colorado",
                 Url = url,
@@ -1083,9 +1056,11 @@ namespace DocLicenseLookupApi
                 IsTable = true
             };
 
+            return await GetLicenseInfoForSelectedStates(new List<SearchInfo> { searchInfo });
+
         }
 
-        public SearchInfo GetConnecticutLicenseInfo()
+        public async Task<IEnumerable<LicenseInfo>> GetConnecticutLicenseInfo()
         {
 
             var url = "https://www.elicense.ct.gov/Lookup/LicenseLookup.aspx";
@@ -1094,7 +1069,7 @@ namespace DocLicenseLookupApi
             var firstNameSelector = "#ctl00_MainContentPlaceHolder_ucLicenseLookup_ctl03_tbFirstName_Contact";
             var lastNameSelector = "#ctl00_MainContentPlaceHolder_ucLicenseLookup_ctl03_tbLastName_Contact";
 
-            return new SearchInfo
+            var searchInfo = new SearchInfo
             {
                 StateName = "Connecticut",
                 Url = url,
@@ -1108,9 +1083,11 @@ namespace DocLicenseLookupApi
                 ProviderNameSelector = "#ctl00_MainContentPlaceHolder_ucLicenseLookup_gvSearchResults > tbody > tr > td:nth-child(2)",
                 IsTable = true
             };
+
+            return await GetLicenseInfoForSelectedStates(new List<SearchInfo> { searchInfo });
         }
 
-        public SearchInfo GetArkansasLicenseInfo()
+        public async Task<IEnumerable<LicenseInfo>> GetArkansasLicenseInfo()
         {
             var url = "https://www.armedicalboard.org/public/verify/default.aspx";
             var radioSelector = @"#ctl00_MainContentPlaceHolder_ucVerifyLicense_rbVerifyLicenseSearch_1";
@@ -1120,6 +1097,7 @@ namespace DocLicenseLookupApi
             var srchBtnSelector = @"#ctl00_MainContentPlaceHolder_ucVerifyLicense_btnVerifyLicense";
             var lastNameSelector = @"#ctl00_MainContentPlaceHolder_ucVerifyLicense_txtVerifyLicNumLastName";
             var secondSrchBtnSelector = @"#ctl00_MainContentPlaceHolder_gvVerifyLicenseResultsLookup_ctl02_VerifySelectFindLicense";
+
 
 
             var searchInfo = new SearchInfo
@@ -1134,14 +1112,15 @@ namespace DocLicenseLookupApi
                 LastNameSelector = lastNameSelector,
                 RadioSelector = radioSelector,
                 SecondSearchButtonSelector = secondSrchBtnSelector,
-                ProviderNameSelector = "#ctl00_MainContentPlaceHolder_lvResults_ctrl0_lblPhyname"
+                ProviderNameSelector = "#ctl00_MainContentPlaceHolder_lvResults_ctrl0_lblPhyname",
+                NoRecordsSelector = "#ctl00_MainContentPlaceHolder_lnkbtnRetry"
             };
 
-            return searchInfo;
+            return await GetLicenseInfoForSelectedStates(new List<SearchInfo> { searchInfo });
 
         }
 
-        public SearchInfo GetKentuckyLicenseInfo()
+        public async Task<IEnumerable<LicenseInfo>> GetKentuckyLicenseInfo()
         {
             var elLicenseNumberSelector = @"#Form1 > div.ky-content > div > div.ky-cm-content > div:nth-child(7) > div.cols2-col2";
             var elLicenseStatusSelector = @"#Form1 > div.ky-content > div > div.ky-cm-content > div:nth-child(8) > div.cols2-col2";
@@ -1162,11 +1141,11 @@ namespace DocLicenseLookupApi
                 ProviderNameSelector = "div:nth-child(3) > div.cols2-col2"
             };
 
-            return searchInfo;
+            return await GetLicenseInfoForSelectedStates(new List<SearchInfo> { searchInfo });
 
         }
 
-        public SearchInfo GetLouisianaSiteLicenseInfo()
+        public async Task<IEnumerable<LicenseInfo>> GetLouisianaSiteLicenseInfo()
         {
             var url = "https://online.lasbme.org/#/verifylicense";
             var elLicenseNumberSelector = "tr > td:nth-child(2)";
@@ -1190,10 +1169,10 @@ namespace DocLicenseLookupApi
                 IsTable = true
             };
 
-            return searchInfo;
+            return await GetLicenseInfoForSelectedStates(new List<SearchInfo> { searchInfo });
         }
 
-        public SearchInfo GetMaineSiteLicenseInfo()
+        public async Task<IEnumerable<LicenseInfo>> GetMaineSiteLicenseInfo()
         {
             var url = "https://www.pfr.maine.gov/ALMSOnline/ALMSQuery/SearchIndividual.aspx";
             var elLicenseNumberSelector = "tr > td:nth-child(2)";
@@ -1220,10 +1199,10 @@ namespace DocLicenseLookupApi
                 ProviderNameSelector = "tr > td:nth-child(1) > a"
             };
 
-            return searchInfo;
+            return await GetLicenseInfoForSelectedStates(new List<SearchInfo> { searchInfo });
         }
 
-        public SearchInfo GetMassachussettsSiteLicenseInfo()
+        public async Task<IEnumerable<LicenseInfo>> GetMassachussettsSiteLicenseInfo()
         {
             var searchInfo = new SearchInfo
             {
@@ -1240,10 +1219,10 @@ namespace DocLicenseLookupApi
                 IsTable = true
             };
 
-            return searchInfo;
+            return await GetLicenseInfoForSelectedStates(new List<SearchInfo> { searchInfo });
         }
 
-        public SearchInfo GetMichiganSiteLicenseInfo()
+        public async Task<IEnumerable<LicenseInfo>> GetMichiganSiteLicenseInfo()
         {
             var url = "https://aca-prod.accela.com/MILARA/GeneralProperty/PropertyLookUp.aspx?isLicensee=Y&TabName=APO";
 
@@ -1269,12 +1248,12 @@ namespace DocLicenseLookupApi
                 ProviderNameSelector = "#ctl00_PlaceHolderMain_licenseeGeneralInfo_lblContactName_value"
             };
 
-            return searchInfo;
+            return await GetLicenseInfoForSelectedStates(new List<SearchInfo> { searchInfo });
         }
 
         //MN site being updated
 
-        public SearchInfo GetMinnesotaSiteLicenseInfo()
+        public async Task<IEnumerable<LicenseInfo>> GetMinnesotaSiteLicenseInfo()
         {
             var url = "http://docfinder.docboard.org/mn/df/mndf.htm";
 
@@ -1299,10 +1278,10 @@ namespace DocLicenseLookupApi
                 LastNameSelector = lastNameSelector,
             };
 
-            return searchInfo;
+            return await GetLicenseInfoForSelectedStates(new List<SearchInfo> { searchInfo });
         }
 
-        public SearchInfo GetNewJerseyLicenseInfo()
+        public async Task<IEnumerable<LicenseInfo>> GetNewJerseyLicenseInfo()
         {
             var searchInfo = new SearchInfo
             {
@@ -1320,10 +1299,10 @@ namespace DocLicenseLookupApi
                 StateName = "New Jersey"
             };
 
-            return searchInfo;
+            return await GetLicenseInfoForSelectedStates(new List<SearchInfo> { searchInfo });
         }
 
-        public SearchInfo GetOhioLicenseInfo()
+        public async Task<IEnumerable<LicenseInfo>> GetOhioLicenseInfo()
         {
             var searchInfo = new SearchInfo
             {
@@ -1340,10 +1319,10 @@ namespace DocLicenseLookupApi
                 IsTable = true
             };
 
-            return searchInfo;
+            return await GetLicenseInfoForSelectedStates(new List<SearchInfo> { searchInfo });
         }
 
-        public SearchInfo GetTexasLicenseInfo()
+        public async Task<IEnumerable<LicenseInfo>> GetTexasLicenseInfo()
         {
             var searchInfo = new SearchInfo
             {
@@ -1355,18 +1334,18 @@ namespace DocLicenseLookupApi
                 FirstNameSelector = @"#BodyContent_tbFirstName",
                 SearchButtonSelector = @"#BodyContent_btnSearch",
                 SecondSearchButtonSelector = @"#BodyContent_gvSearchResults > tbody > tr:nth-child(2) > td:nth-child(1) > a",
-                ProviderNameSelector = "#BodyContent_lblHeaderName",
-                LicenseNumberSelector = @"#BodyContent_lblLicenseNumber",
-                LicenseExpirationSelector = @"#BodyContent_lblLicenseExpirationDate",
-                LicenseStatusSelector = @"#BodyContent_lblRegStatus",
+                ProviderNameSelector = "#PrintVerificationDiv > table > tbody > tr:nth-child(1) > td > label.normal-m",
+                LicenseNumberSelector = @"#pnlVerified > table > tbody > tr:nth-child(3) > td > label:nth-child(2)",
+                LicenseExpirationSelector = @"tr:nth-child(5) > td > label.normal-m",
+                LicenseStatusSelector = @"#BodyContent_trRegStatus > td > label.normal-m",
                 AcceptUsageTermsBtnSelector = @"#BodyContent_btnAccept",
                 IsActiveLicenseSelector = @"#BodyContent_cbActiveLicensesOnly"
             };
 
-            return searchInfo;
+            return await GetLicenseInfoForSelectedStates(new List<SearchInfo> { searchInfo });
         }
 
-        public SearchInfo GetVermontLicenseInfo()
+        public async Task<IEnumerable<LicenseInfo>> GetVermontLicenseInfo()
         {
             var searchInfo = new SearchInfo
             {
@@ -1383,10 +1362,30 @@ namespace DocLicenseLookupApi
                 ProviderNameSelector = "td:nth-child(4) > div",
             };
 
-            return searchInfo;
+            var result = await GetLicenseInfoForSelectedStates(new List<SearchInfo> { searchInfo });
+
+
+            return result;
         }
 
-        public SearchInfo GetVirginiaLicenseInfo()
+        public async Task<IEnumerable<LicenseInfo>> GetOklahomaLicenseInfo()
+        {
+            var searchInfo = new SearchInfo
+            {
+                Url = "https://osboe.us.thentiacloud.net/webs/osboe/register/#",
+                StateName = "Oklahoma",
+                LastName = $"{_firstName} {_lastName}",
+                LastNameSelector = "#keywords",
+                SearchButtonSelector = "div > button",
+                LicenseNumberSelector = "tr > td:nth-child(1)",
+                IsTable = true,
+                LicenseStatusSelector = "tr > td:nth-child(5) > span",
+                ProviderNameSelector = "tr > td:nth-child(3)",
+            };
+
+            return await GetLicenseInfoForSelectedStates(new List<SearchInfo> { searchInfo });
+        }
+        public async Task<IEnumerable<LicenseInfo>> GetVirginiaLicenseInfo()
         {
             var searchInfo = new SearchInfo
             {
@@ -1406,13 +1405,13 @@ namespace DocLicenseLookupApi
                 IsActiveLicenseSelector = @""
             };
 
-            return searchInfo;
+            return await GetLicenseInfoForSelectedStates(new List<SearchInfo> { searchInfo });
         }
 
-        public SearchInfo GetWestVirginiaLicenseInfo()
+        public async Task<IEnumerable<LicenseInfo>> GetWestVirginiaLicenseInfo()
         {
             if (_isDOSearch)
-                return GetWestVirginiaDOLicenseInfo();
+                return await GetWestVirginiaDOLicenseInfo();
 
             var searchInfo = new SearchInfo
             {
@@ -1435,10 +1434,10 @@ namespace DocLicenseLookupApi
 
             };
 
-            return searchInfo;
+            return await GetLicenseInfoForSelectedStates(new List<SearchInfo> { searchInfo });
         }
 
-        public SearchInfo GetWestVirginiaDOLicenseInfo()
+        public async Task<IEnumerable<LicenseInfo>> GetWestVirginiaDOLicenseInfo()
         {
             var searchInfo = new SearchInfo
             {
@@ -1456,10 +1455,10 @@ namespace DocLicenseLookupApi
                 DropdownSelectValue = @"BoardXP"
             };
 
-            return searchInfo;
+            return await GetLicenseInfoForSelectedStates(new List<SearchInfo> { searchInfo });
         }
 
-        public SearchInfo GetWyomingLicenseInfo()
+        public async Task<IEnumerable<LicenseInfo>> GetWyomingLicenseInfo()
         {
             var searchInfo = new SearchInfo
             {
@@ -1476,10 +1475,10 @@ namespace DocLicenseLookupApi
                 IsTable = true
             };
 
-            return searchInfo;
+            return await GetLicenseInfoForSelectedStates(new List<SearchInfo> { searchInfo });
         }
 
-        public SearchInfo GetDistrictOfColumbiaLicenseInfo()
+        public async Task<IEnumerable<LicenseInfo>> GetDistrictOfColumbiaLicenseInfo()
         {
             var searchInfo = new SearchInfo
             {
@@ -1499,10 +1498,10 @@ namespace DocLicenseLookupApi
                 IsTable = true,
             };
 
-            return searchInfo;
+            return await GetLicenseInfoForSelectedStates(new List<SearchInfo> { searchInfo });
         }
 
-        public SearchInfo GetDelawareLicenseInfo()
+        public async Task<IEnumerable<LicenseInfo>> GetDelawareLicenseInfo()
         {
             var searchInfo = new SearchInfo
             {
@@ -1520,10 +1519,10 @@ namespace DocLicenseLookupApi
                 IsTable = true
             };
 
-            return searchInfo;
+            return await GetLicenseInfoForSelectedStates(new List<SearchInfo> { searchInfo });
         }
 
-        public SearchInfo GetIndianaLicenseInfo()
+        public async Task<IEnumerable<LicenseInfo>> GetIndianaLicenseInfo()
         {
             var searchInfo = new SearchInfo
             {
@@ -1540,10 +1539,10 @@ namespace DocLicenseLookupApi
                 ProviderNameSelector = "#datagrid_results > tbody > tr > td:nth-child(1) > table > tbody > tr:nth-child(1) > td"
             };
 
-            return searchInfo;
+            return await GetLicenseInfoForSelectedStates(new List<SearchInfo> { searchInfo });
         }
 
-        public SearchInfo GetIdahoLicenseInfo()
+        public async Task<IEnumerable<LicenseInfo>> GetIdahoLicenseInfo()
         {
             var searchInfo = new SearchInfo
             {
@@ -1561,10 +1560,10 @@ namespace DocLicenseLookupApi
                 IsTable = true,
             };
 
-            return searchInfo;
+            return await GetLicenseInfoForSelectedStates(new List<SearchInfo> { searchInfo });
         }
 
-        public SearchInfo GetIowaLicenseInfo()
+        public async Task<IEnumerable<LicenseInfo>> GetIowaLicenseInfo()
         {
             var searchInfo = new SearchInfo
             {
@@ -1577,13 +1576,17 @@ namespace DocLicenseLookupApi
                 FirstNameSelector = "input[name=firstname]",
                 SearchButtonSelector = "button.mat-primary",
                 LicenseNumberSelector = "mat-cell.mat-cell.cdk-cell.cdk-column-ReferenceFile.mat-column-ReferenceFile.ng-star-inserted > div",
-                LicenseStatusSelector = "mat-cell.mat-cell.cdk-cell.cdk-column-StatusDesc.mat-column-StatusDesc.ng-star-inserted > div"
+                LicenseStatusSelector = "mat-cell.mat-cell.cdk-cell.cdk-column-StatusDesc.mat-column-StatusDesc.ng-star-inserted > div",
+                HasRecaptcha2 = true,
+                SiteKey = "6LfQXPclAAAAAEoeIIo4q7p6IvjTql1dz3AcDJye"
+
             };
 
-            return searchInfo;
+         
+            return await GetLicenseInfoForSelectedStates(new List<SearchInfo> { searchInfo });
         }
 
-        public SearchInfo GetMissouriLicenseInfo()
+        public async Task<IEnumerable<LicenseInfo>> GetMissouriLicenseInfo()
         {
             var searchInfo = new SearchInfo
             {
@@ -1599,13 +1602,13 @@ namespace DocLicenseLookupApi
                 ProviderNameSelector = "tr:nth-child(1) > td:nth-child(2)"
             };
 
-            return searchInfo;
+            return await GetLicenseInfoForSelectedStates(new List<SearchInfo> { searchInfo });
         }
 
-        public SearchInfo GetNevadaLicenseInfo()
+        public async Task<IEnumerable<LicenseInfo>> GetNevadaLicenseInfo()
         {
             if (_isDOSearch)
-                return GetNevadaDOLicenseInfo();
+                return await GetNevadaDOLicenseInfo();
 
             var searchInfo = new SearchInfo
             {
@@ -1622,10 +1625,10 @@ namespace DocLicenseLookupApi
                 // SecondSearchButtonSelector = "tr > td:nth-child(10) > a"
             };
 
-            return searchInfo;
+            return await GetLicenseInfoForSelectedStates(new List<SearchInfo> { searchInfo });
         }
 
-        public SearchInfo GetNevadaDOLicenseInfo()
+        public async Task<IEnumerable<LicenseInfo>> GetNevadaDOLicenseInfo()
         {
             var searchInfo = new SearchInfo
             {
@@ -1641,10 +1644,10 @@ namespace DocLicenseLookupApi
                 IsTable = true
             };
 
-            return searchInfo;
+            return await GetLicenseInfoForSelectedStates(new List<SearchInfo> { searchInfo });
         }
 
-        public SearchInfo GetNewHampshireLicenseInfo()
+        public async Task<IEnumerable<LicenseInfo>> GetNewHampshireLicenseInfo()
         {
             var searchInfo = new SearchInfo
             {
@@ -1660,10 +1663,10 @@ namespace DocLicenseLookupApi
                 ProviderNameSelector = "#datagrid_results > tbody > tr >td:nth-child(1)"
             };
 
-            return searchInfo;
+            return await GetLicenseInfoForSelectedStates(new List<SearchInfo> { searchInfo });
         }
 
-        public SearchInfo GetNewYorkLicenseInfo()
+        public async Task<IEnumerable<LicenseInfo>> GetNewYorkLicenseInfo()
         {
             var searchInfo = new SearchInfo
             {
@@ -1686,10 +1689,10 @@ namespace DocLicenseLookupApi
                 SiteKey = @"6LdTmh0pAAAAAEcCfQ6zY2lKvj62CF3TryPCGWYm",
             };
 
-            return searchInfo;
+            return await GetLicenseInfoForSelectedStates(new List<SearchInfo> { searchInfo });
         }
 
-        public SearchInfo GetTennesseeLicenseInfo()
+        public async Task<IEnumerable<LicenseInfo>> GetTennesseeLicenseInfo()
         {
             var searchInfo = new SearchInfo
             {
@@ -1707,10 +1710,10 @@ namespace DocLicenseLookupApi
                 CaptchaAnswerSelector = "span:nth-child(2) > input[type=text]"
             };
 
-            return searchInfo;
+            return await GetLicenseInfoForSelectedStates(new List<SearchInfo> { searchInfo });
         }
 
-        public SearchInfo GetFloridaLicenseInfo()
+        public async Task<IEnumerable<LicenseInfo>> GetFloridaLicenseInfo()
         {
             var searchInfo = new SearchInfo
             {
@@ -1727,10 +1730,10 @@ namespace DocLicenseLookupApi
                 IsTable = true,
             };
 
-            return searchInfo;
+            return await GetLicenseInfoForSelectedStates(new List<SearchInfo> { searchInfo });
         }
 
-        public SearchInfo GetNorthCarolinaLicenseInfo()
+        public async Task<IEnumerable<LicenseInfo>> GetNorthCarolinaLicenseInfo()
         {
             var searchInfo = new SearchInfo
             {
@@ -1747,10 +1750,10 @@ namespace DocLicenseLookupApi
                 IsTable = true
             };
 
-            return searchInfo;
+            return await GetLicenseInfoForSelectedStates(new List<SearchInfo> { searchInfo });
         }
 
-        public SearchInfo GetNewMexicoLicenseInfo()
+        public async Task<IEnumerable<LicenseInfo>> GetNewMexicoLicenseInfo()
         {
             var searchInfo = new SearchInfo
             {
@@ -1766,10 +1769,10 @@ namespace DocLicenseLookupApi
                 LicenseExpirationSelector = "tr:nth-child(5) > td:nth-child(4) > font"
             };
 
-            return searchInfo;
+            return await GetLicenseInfoForSelectedStates(new List<SearchInfo> { searchInfo });
         }
 
-        public SearchInfo GetKansasLicenseInfo()
+        public async Task<IEnumerable<LicenseInfo>> GetKansasLicenseInfo()
         {
             var searchInfo = new SearchInfo
             {
@@ -1786,10 +1789,10 @@ namespace DocLicenseLookupApi
                 IsTable = true
             };
 
-            return searchInfo;
+            return await GetLicenseInfoForSelectedStates(new List<SearchInfo> { searchInfo });
         }
 
-        public SearchInfo GetMarylandLicenseInfo()
+        public async Task<IEnumerable<LicenseInfo>> GetMarylandLicenseInfo()
         {
             var searchInfo = new SearchInfo
             {
@@ -1807,7 +1810,7 @@ namespace DocLicenseLookupApi
                 ProviderNameSelector = "#Name"
             };
 
-            return searchInfo;
+            return await GetLicenseInfoForSelectedStates(new List<SearchInfo> { searchInfo });
         }
     }
 }
